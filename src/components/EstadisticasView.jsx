@@ -1,0 +1,133 @@
+import { useState } from 'react'
+import { RefreshCw, ChevronRight, ArrowLeft } from 'lucide-react'
+import { getPartidosNpa, getPlayers, getMatches } from '../db.js'
+import { isNpaExport, syncNpaExport } from '../npaSync.js'
+import { buildMatchRows } from '../statsEngine.js'
+import { formatDateShort, formatDateLong, parseISODate } from '../dateUtils.js'
+import StatsDashboard from './StatsDashboard.jsx'
+
+const COMPETITION_ROW_CLASS = { Liga: 'match-row--liga', Amistoso: 'match-row--amistoso', Copa: 'match-row--copa' }
+
+export default function EstadisticasView() {
+  const [refreshKey, setRefreshKey] = useState(0)
+  const [syncMsg, setSyncMsg] = useState('')
+  const [equipoFilter, setEquipoFilter] = useState(null)
+  const [openMatchId, setOpenMatchId] = useState(null)
+
+  const players = getPlayers()
+  const allMatches = getPartidosNpa()
+  // Mismos equipos que en Plantilla (derivados de la plantilla, no de qué
+  // partidos haya ya importados) para que la diferenciación 1º Equipo /
+  // Juvenil sea siempre visible, aunque a un equipo aún no le hayas
+  // sincronizado ningún partido.
+  const equipos = [...new Set(players.map((p) => p.equipo).filter(Boolean))]
+  const defaultEquipo = equipos.find((eq) => /juvenil/i.test(eq)) || equipos[0] || null
+  const activeEquipo = equipoFilter && equipos.includes(equipoFilter) ? equipoFilter : defaultEquipo
+  const matches = activeEquipo ? allMatches.filter((m) => m.equipo === activeEquipo) : allMatches
+  const competitionByNpaId = new Map(getMatches().filter((cm) => cm.npaMatchId).map((cm) => [cm.npaMatchId, cm.competition]))
+  const openMatch = openMatchId ? matches.find((m) => m.id === openMatchId) : null
+
+  function bump() {
+    setRefreshKey((k) => k + 1)
+  }
+
+  function handleUpdateFile(e) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = async () => {
+      try {
+        const data = JSON.parse(reader.result)
+        if (!isNpaExport(data)) throw new Error('ese archivo no parece un export de NPA Stats')
+        setSyncMsg('Sincronizando…')
+        const r = await syncNpaExport(data)
+        setSyncMsg(`Actualizado: ${r.matchesAdded} partido${r.matchesAdded === 1 ? '' : 's'} nuevo${r.matchesAdded === 1 ? '' : 's'}, ${r.matchesUpdated} actualizado${r.matchesUpdated === 1 ? '' : 's'} · plantilla ${r.playersAdded} nueva${r.playersAdded === 1 ? '' : 's'}, ${r.playersUpdated} actualizada${r.playersUpdated === 1 ? '' : 's'} · calendario: ${r.calendarMatchesLinked} enlazado${r.calendarMatchesLinked === 1 ? '' : 's'}, ${r.calendarMatchesCreated} creado${r.calendarMatchesCreated === 1 ? '' : 's'}${r.reportsSynced ? ` · ${r.reportsSynced} informe${r.reportsSynced === 1 ? '' : 's'} de partido recogido${r.reportsSynced === 1 ? '' : 's'}` : ''}.`)
+        bump()
+      } catch (err) {
+        setSyncMsg(`No se pudo actualizar: ${err.message}.`)
+      }
+    }
+    reader.readAsText(file)
+  }
+
+  const rows = buildMatchRows(matches)
+
+  return (
+    <div>
+      {openMatch ? (
+        <>
+          <button type="button" className="link-btn" style={{ marginBottom: 12, display: 'inline-flex', alignItems: 'center', gap: 6 }} onClick={() => setOpenMatchId(null)}>
+            <ArrowLeft size={14} />
+            Volver al global
+          </button>
+          <div className="row spread" style={{ marginBottom: 16 }}>
+            <div>
+              <h2 className="section-title">{openMatch.rivalName}</h2>
+              <p className="section-hint">{formatDateLong(parseISODate(openMatch.date.slice(0, 10)))}{openMatch.venue ? ` · ${openMatch.venue}` : ''}</p>
+            </div>
+            <span className="badge badge-red" style={{ fontSize: 15, padding: '8px 16px' }}>
+              Noia {openMatch.teamGoals} - {openMatch.rivalScore} {openMatch.rivalName}
+            </span>
+          </div>
+          <StatsDashboard matches={[openMatch]} players={players} />
+        </>
+      ) : (
+        <>
+          <div className="row spread" style={{ marginBottom: 16 }}>
+            <div>
+              <h2 className="section-title">Estadísticas</h2>
+              <p className="section-hint">
+                Datos de partido importados de NPA Stats{activeEquipo ? ` · ${activeEquipo}` : ''}
+              </p>
+            </div>
+            <label className="btn btn-primary" style={{ cursor: 'pointer' }}>
+              <RefreshCw size={15} />
+              Actualizar desde NPA Stats
+              <input type="file" accept="application/json,.json" onChange={handleUpdateFile} style={{ display: 'none' }} />
+            </label>
+          </div>
+
+          {syncMsg && <div className="banner banner-info" style={{ marginBottom: 16 }}>{syncMsg}</div>}
+
+          {equipos.length > 1 && (
+            <div className="chip-group" style={{ marginBottom: 16 }}>
+              {equipos.map((eq) => (
+                <button key={eq} type="button" className={`chip${activeEquipo === eq ? ' is-active' : ''}`} onClick={() => setEquipoFilter(eq)}>
+                  {eq}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <StatsDashboard matches={matches} players={players} />
+
+          {matches.length > 0 && (
+            <div className="card" style={{ marginTop: 16 }}>
+              <h4 style={{ fontSize: 14, marginBottom: 4 }}>Partido a partido</h4>
+              <p className="section-hint" style={{ marginBottom: 6 }}>Toca un partido para ver sus estadísticas por separado, aquí mismo.</p>
+              {rows.map((m) => {
+                const competition = competitionByNpaId.get(m.id) || 'Amistoso'
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    className={`match-row ${COMPETITION_ROW_CLASS[competition] || ''}`}
+                    style={{ width: '100%', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+                    onClick={() => setOpenMatchId(m.id)}
+                  >
+                    <span className="text-muted">{formatDateShort(parseISODate(m.date.slice(0, 10)))}</span>
+                    <span style={{ flex: 1 }}>{m.rivalName}</span>
+                    <span><strong>{m.teamGoals}-{m.rivalScore}</strong></span>
+                    <span className="text-muted">xG {m.xgFor} / {m.xgAgainst}</span>
+                    <ChevronRight size={14} color="var(--ink-300)" />
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}

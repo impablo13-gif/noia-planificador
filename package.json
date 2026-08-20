@@ -1,0 +1,23 @@
+{
+  "name": "noia-planificador",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Segundo cerebro de planificacion para Noia Portus Apostoli FS, Juvenil DH: calendario, plantilla, scouting de rivales y asistente.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --host"
+  },
+  "dependencies": {
+    "@fontsource/inter": "^5.1.0",
+    "@fontsource/oswald": "^5.1.0",
+    "lucide-react": "^0.462.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^5.4.11"
+  }
+}
