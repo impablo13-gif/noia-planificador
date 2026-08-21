@@ -21,10 +21,13 @@ function isEmptyDay(events) {
   return !events || (events.trainings.length === 0 && events.matches.length === 0)
 }
 
-// Convierte una semana (7 fechas) en las celdas a pintar: un día de partido
-// se come el hueco del día siguiente si ese día no tiene nada programado, en
-// vez de dejarlo vacío al lado — así el partido sale mucho más ancho sin
-// romper la cuadrícula (cada semana sigue sumando 7 columnas en total).
+// Convierte una semana (7 fechas, LUN...DOM) en las celdas a pintar: un día
+// de partido se come el hueco del día siguiente si ese día no tiene nada
+// programado, en vez de dejarlo vacío al lado — así el partido sale mucho
+// más ancho sin romper la cuadrícula (cada semana sigue sumando 7 columnas
+// en total). El domingo (última columna) nunca se invade: aunque esté
+// libre, se deja como su propio día — no queremos que un partido de sábado
+// se "fume" el otro día del fin de semana.
 function buildWeekCells(week, eventsMap) {
   const cells = []
   for (let i = 0; i < week.length; i++) {
@@ -33,7 +36,8 @@ function buildWeekCells(week, eventsMap) {
     const dayEvents = eventsMap[iso] || { trainings: [], matches: [] }
     const isMatchDay = dayEvents.matches.length > 0
     const next = week[i + 1]
-    if (isMatchDay && next && isEmptyDay(eventsMap[toISODate(next)])) {
+    const nextIsSunday = i + 1 === 6
+    if (isMatchDay && next && !nextIsSunday && isEmptyDay(eventsMap[toISODate(next)])) {
       cells.push({ date, iso, dayEvents, span: 2 })
       i++
       continue
@@ -129,8 +133,9 @@ export default function CalendarView({ onGoToRival }) {
                       <span key={m.id} className={`calendar-event calendar-event--match ${COMPETITION_EVENT_CLASS[m.competition] || 'is-comp-amistoso'}`}>
                         <span className="calendar-event__shield">
                           <PlayerAvatar fileId={opponents.find((o) => o.id === m.opponentId)?.shieldFileId} size="sm" />
+                          <span className="calendar-event__venue">{m.isHome ? '🏠' : '✈️'}</span>
                         </span>
-                        <span className="calendar-event__rival">{m.isHome ? '🏠' : '✈️'} {rivalName(opponents, m.opponentId)}</span>
+                        <span className="calendar-event__rival">{rivalName(opponents, m.opponentId)}</span>
                       </span>
                     ))}
                   </div>

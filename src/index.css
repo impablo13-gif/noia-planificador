@@ -822,17 +822,38 @@ textarea::placeholder {
 }
 
 .calendar-event__shield {
+  position: relative;
   display: flex;
+  flex-shrink: 0;
 }
 
+/* Fondo blanco + logo entero sin recortar (contain, no cover) — un escudo es
+   un logotipo, no una foto: recortarlo por los bordes lo deja mal encuadrado. */
 .calendar-event__shield .avatar-sm {
   width: 34px;
   height: 34px;
+  background: #fff;
+  object-fit: contain;
+  padding: 2px;
+}
+
+/* Casa/fuera como insignia en la esquina del escudo, no pegado al nombre. */
+.calendar-event__venue {
+  position: absolute;
+  bottom: -3px;
+  right: -4px;
+  font-size: 11px;
+  line-height: 1;
+  background: #fff;
+  border-radius: 50%;
+  padding: 1px;
+  box-shadow: var(--shadow-sm);
 }
 
 .calendar-event__rival {
   line-height: 1.25;
   word-break: break-word;
+  font-size: 11.5px;
 }
 
 /* Casilla ensanchada (partido que se ha comido el hueco del día vacío de al
@@ -846,7 +867,7 @@ textarea::placeholder {
 }
 
 .calendar-day.is-wide .calendar-event__rival {
-  font-size: 13.5px;
+  font-size: 12px;
 }
 
 .calendar-day__num {
