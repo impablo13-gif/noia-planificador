@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ClipboardPaste, Check, UserCheck } from 'lucide-react'
+import { ClipboardPaste, Check, UserCheck, AlertTriangle } from 'lucide-react'
 import Modal from './Modal.jsx'
 import { syncBienestarPaste, looksLikePastedBienestar, resolveUnmatchedName } from '../bienestarSync.js'
 import { getPlayers } from '../db.js'
@@ -45,7 +45,7 @@ export default function PasteBienestarModal({ onClose, onSynced }) {
       footer={
         <>
           <button type="button" className="btn btn-secondary" onClick={onClose}>Cerrar</button>
-          <button type="button" className="btn btn-primary" onClick={handleSync} disabled={!text.trim()}>
+          <button type="button" className="btn btn-primary" onClick={handleSync} disabled={!text.trim() || players.length === 0}>
             <ClipboardPaste size={14} />
             Sincronizar
           </button>
@@ -53,6 +53,15 @@ export default function PasteBienestarModal({ onClose, onSynced }) {
       }
     >
       <div className="stack">
+        {players.length === 0 && (
+          <div className="banner banner-danger">
+            <AlertTriangle size={15} />
+            <span>
+              La plantilla está vacía ahora mismo — sin jugadores no se puede identificar a nadie del cuestionario, así que
+              cualquier cosa que pegues aquí no se procesará. Ve a "Importar JSON" (o "Restaurar" copia de seguridad) primero.
+            </span>
+          </div>
+        )}
         <p className="section-hint" style={{ marginBottom: 0 }}>
           Sirve tanto para el Cuestionario WELLNESS (antes del entreno) como para el Cuestionario RPE (después) — se
           reconocen solos, y se pueden pegar juntos o por separado, se van fusionando en el mismo registro de cada
