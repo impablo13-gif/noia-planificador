@@ -38,7 +38,9 @@ import { getPlayers, getBienestar, upsertBienestar, getBienestarAliases, setBien
 function toISOFromTimestamp(ts) {
   const datePart = (ts || '').trim().split(' ')[0]
   if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return datePart
-  const m = datePart.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+  // Admite "/", "-" y "." como separador de fecha — según la configuración
+  // regional de la hoja, Google Sheets puede copiar cualquiera de los tres.
+  const m = datePart.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/)
   if (m) {
     const [, d, mo, y] = m
     return `${y}-${mo.padStart(2, '0')}-${d.padStart(2, '0')}`
@@ -266,8 +268,10 @@ function splitPasteRow(line) {
 }
 
 // Un timestamp de Google Forms al principio de la línea: "DD/MM/AAAA HH:MM...".
-// Tolera un BOM/espacio invisible delante (Excel a veces lo mete al copiar).
-const TIMESTAMP_LINE_RE = /^[﻿​]*\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{2}/
+// Tolera un BOM/espacio invisible delante (a veces se cuela al copiar) y
+// "/", "-" o "." como separador de fecha (depende de la configuración
+// regional de la hoja).
+const TIMESTAMP_LINE_RE = /^[﻿​]*\d{1,2}[/.-]\d{1,2}[/.-]\d{4}\s+\d{1,2}:\d{2}/
 
 // Quita el BOM inicial (frecuente al copiar de Excel) y normaliza saltos de
 // línea CRLF (Windows/Excel) a LF antes de partir en filas.
