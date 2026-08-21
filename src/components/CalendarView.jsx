@@ -10,13 +10,38 @@ import TrainingModal from './TrainingModal.jsx'
 import MatchModal from './MatchModal.jsx'
 import PlayerAvatar from './PlayerAvatar.jsx'
 
-function shortName(opponents, id) {
+function rivalName(opponents, id) {
   const o = opponents.find((x) => x.id === id)
-  if (!o) return 'Por confirmar'
-  return o.name.length > 16 ? `${o.name.slice(0, 15)}…` : o.name
+  return o ? o.name : 'Por confirmar'
 }
 
 const COMPETITION_EVENT_CLASS = { Liga: 'is-comp-liga', Amistoso: 'is-comp-amistoso', Copa: 'is-comp-copa' }
+
+function isEmptyDay(events) {
+  return !events || (events.trainings.length === 0 && events.matches.length === 0)
+}
+
+// Convierte una semana (7 fechas) en las celdas a pintar: un día de partido
+// se come el hueco del día siguiente si ese día no tiene nada programado, en
+// vez de dejarlo vacío al lado — así el partido sale mucho más ancho sin
+// romper la cuadrícula (cada semana sigue sumando 7 columnas en total).
+function buildWeekCells(week, eventsMap) {
+  const cells = []
+  for (let i = 0; i < week.length; i++) {
+    const date = week[i]
+    const iso = toISODate(date)
+    const dayEvents = eventsMap[iso] || { trainings: [], matches: [] }
+    const isMatchDay = dayEvents.matches.length > 0
+    const next = week[i + 1]
+    if (isMatchDay && next && isEmptyDay(eventsMap[toISODate(next)])) {
+      cells.push({ date, iso, dayEvents, span: 2 })
+      i++
+      continue
+    }
+    cells.push({ date, iso, dayEvents, span: 1 })
+  }
+  return cells
+}
 
 export default function CalendarView({ onGoToRival }) {
   const today = new Date()
@@ -32,6 +57,10 @@ export default function CalendarView({ onGoToRival }) {
   const rangeEnd = weeks[weeks.length - 1][6]
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const eventsMap = useMemo(() => getEventsInRange(rangeStart, rangeEnd), [rangeStart, rangeEnd, refreshKey])
+  const dayCells = useMemo(
+    () => weeks.flatMap((week, weekIdx) => buildWeekCells(week, eventsMap).map((cell) => ({ ...cell, weekIdx }))),
+    [weeks, eventsMap],
+  )
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const opponents = useMemo(() => getOpponents(), [refreshKey])
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -77,16 +106,16 @@ export default function CalendarView({ onGoToRival }) {
             {dowLabels().map((d) => (
               <div key={d} className="calendar-grid__dow">{d}</div>
             ))}
-            {weeks.flat().map((date, i) => {
-              const iso = toISODate(date)
-              const dayEvents = eventsMap[iso] || { trainings: [], matches: [] }
+            {dayCells.map(({ date, iso, dayEvents, span, weekIdx }) => {
               const outside = date.getMonth() !== cursor.getMonth()
               const isToday = isSameDay(date, today)
-              const isCurrentWeek = Math.floor(i / 7) === currentWeekIndex
+              const isCurrentWeek = weekIdx === currentWeekIndex
+              const isMatchDay = dayEvents.matches.length > 0
               return (
                 <div
                   key={iso}
-                  className={`calendar-day${outside ? ' is-outside' : ''}${isToday ? ' is-today' : ''}${isCurrentWeek ? ' is-current-week' : ''}`}
+                  className={`calendar-day${outside ? ' is-outside' : ''}${isToday ? ' is-today' : ''}${isCurrentWeek ? ' is-current-week' : ''}${isMatchDay ? ' is-match-day' : ''}${span === 2 ? ' is-wide' : ''}`}
+                  style={span === 2 ? { gridColumn: 'span 2' } : undefined}
                   onClick={() => setSelectedDate(date)}
                 >
                   <div className="calendar-day__num">{date.getDate()}</div>
@@ -97,10 +126,11 @@ export default function CalendarView({ onGoToRival }) {
                       </span>
                     ))}
                     {dayEvents.matches.map((m) => (
-                      <span key={m.id} className={`calendar-event ${COMPETITION_EVENT_CLASS[m.competition] || 'is-comp-amistoso'}`}>
-                        {m.isHome ? '🏠' : '✈️'}
-                        <PlayerAvatar fileId={opponents.find((o) => o.id === m.opponentId)?.shieldFileId} size="xs" />
-                        {shortName(opponents, m.opponentId)}
+                      <span key={m.id} className={`calendar-event calendar-event--match ${COMPETITION_EVENT_CLASS[m.competition] || 'is-comp-amistoso'}`}>
+                        <span className="calendar-event__shield">
+                          <PlayerAvatar fileId={opponents.find((o) => o.id === m.opponentId)?.shieldFileId} size="sm" />
+                        </span>
+                        <span className="calendar-event__rival">{m.isHome ? '🏠' : '✈️'} {rivalName(opponents, m.opponentId)}</span>
                       </span>
                     ))}
                   </div>

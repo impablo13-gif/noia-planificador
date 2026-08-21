@@ -781,6 +781,74 @@ textarea::placeholder {
   padding: 3px 6px;
 }
 
+/* Un día de partido destaca por encima de todo lo demás, sea o no la semana
+   en curso — es lo primero que debe llamar la atención al ver el mes. */
+.calendar-day.is-match-day {
+  min-height: 170px;
+  padding: 12px;
+  background: var(--red-50);
+  border-width: 2px;
+  border-color: var(--red-600);
+  box-shadow: var(--shadow-md);
+  z-index: 1;
+}
+
+.calendar-day.is-match-day .calendar-day__num {
+  font-size: 20px;
+  color: var(--red-800);
+}
+
+.calendar-day.is-match-day .calendar-event {
+  font-size: 13px;
+  padding: 4px 8px;
+  font-weight: 700;
+}
+
+.calendar-day.is-match-day.is-current-week {
+  min-height: 180px;
+}
+
+/* El escudo y el nombre del rival en vertical, ocupando todo el ancho de la
+   casilla (ya ensanchada por is-match-day) y con el nombre completo — nada
+   de una línea apretada con puntos suspensivos. */
+.calendar-event--match {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 4px;
+  white-space: normal;
+  overflow: visible;
+  padding: 8px 4px;
+}
+
+.calendar-event__shield {
+  display: flex;
+}
+
+.calendar-event__shield .avatar-sm {
+  width: 34px;
+  height: 34px;
+}
+
+.calendar-event__rival {
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+/* Casilla ensanchada (partido que se ha comido el hueco del día vacío de al
+   lado): con tanto ancho disponible, el escudo y el nombre quedan mejor en
+   fila que apilados. */
+.calendar-day.is-wide .calendar-event--match {
+  flex-direction: row;
+  text-align: left;
+  justify-content: center;
+  gap: 8px;
+}
+
+.calendar-day.is-wide .calendar-event__rival {
+  font-size: 13.5px;
+}
+
 .calendar-day__num {
   font-size: 12.5px;
   font-weight: 600;
