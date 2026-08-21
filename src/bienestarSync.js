@@ -265,19 +265,34 @@ function splitPasteRow(line) {
   return line.split(/ {2,}/)
 }
 
+// Un timestamp de Google Forms al principio de la línea: "DD/MM/AAAA HH:MM...".
+// Tolera un BOM/espacio invisible delante (Excel a veces lo mete al copiar).
+const TIMESTAMP_LINE_RE = /^[﻿​]*\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{2}/
+
+// Quita el BOM inicial (frecuente al copiar de Excel) y normaliza saltos de
+// línea CRLF (Windows/Excel) a LF antes de partir en filas.
+function normalizePasteText(text) {
+  return (text || '').replace(/^﻿/, '').replace(/\r\n/g, '\n')
+}
+
 export function looksLikePastedBienestar(text) {
-  const firstLine = (text || '').trim().split('\n')[0] || ''
-  // Un timestamp de Google Forms al principio de la línea: "DD/MM/AAAA HH:MM..."
-  return /^\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{2}/.test(firstLine.trim())
+  // Cualquier línea vale, no solo la primera — así una fila de cabecera, una
+  // línea en blanco suelta o un carácter invisible al principio del bloque
+  // no hacen que se rechace todo el pegado por error.
+  return normalizePasteText(text)
+    .split('\n')
+    .some((line) => TIMESTAMP_LINE_RE.test(line.trim()))
 }
 
 // Acepta filas pegadas de cualquiera de los dos formularios, incluso
-// mezcladas en el mismo pegado — cada fila se resuelve por separado.
+// mezcladas en el mismo pegado — cada fila se resuelve por separado. Las
+// líneas que no empiezan por un timestamp real (cabecera colada, línea en
+// blanco…) se ignoran en vez de romper el resto del pegado.
 export function syncBienestarPaste(text) {
-  const rows = (text || '')
+  const rows = normalizePasteText(text)
     .split('\n')
     .map((line) => line.trim())
-    .filter(Boolean)
+    .filter((line) => TIMESTAMP_LINE_RE.test(line))
     .map(splitPasteRow)
   if (rows.length === 0) return { added: 0, updated: 0, unmatched: [], lastFecha: null, missing: [] }
 
