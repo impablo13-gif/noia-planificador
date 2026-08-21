@@ -27,6 +27,7 @@ export default function CalendarView({ onGoToRival }) {
   const [refreshKey, setRefreshKey] = useState(0)
 
   const weeks = useMemo(() => getMonthMatrix(cursor.getFullYear(), cursor.getMonth()), [cursor])
+  const currentWeekIndex = weeks.findIndex((week) => week.some((d) => isSameDay(d, today)))
   const rangeStart = weeks[0][0]
   const rangeEnd = weeks[weeks.length - 1][6]
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -76,15 +77,16 @@ export default function CalendarView({ onGoToRival }) {
             {dowLabels().map((d) => (
               <div key={d} className="calendar-grid__dow">{d}</div>
             ))}
-            {weeks.flat().map((date) => {
+            {weeks.flat().map((date, i) => {
               const iso = toISODate(date)
               const dayEvents = eventsMap[iso] || { trainings: [], matches: [] }
               const outside = date.getMonth() !== cursor.getMonth()
               const isToday = isSameDay(date, today)
+              const isCurrentWeek = Math.floor(i / 7) === currentWeekIndex
               return (
                 <div
                   key={iso}
-                  className={`calendar-day${outside ? ' is-outside' : ''}${isToday ? ' is-today' : ''}`}
+                  className={`calendar-day${outside ? ' is-outside' : ''}${isToday ? ' is-today' : ''}${isCurrentWeek ? ' is-current-week' : ''}`}
                   onClick={() => setSelectedDate(date)}
                 >
                   <div className="calendar-day__num">{date.getDate()}</div>
