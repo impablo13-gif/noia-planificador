@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Flame, HeartPulse, Moon, Zap, Bone, BatteryMedium, Gauge, MapPin } from 'lucide-react'
+import { Flame, HeartPulse, Moon, Zap, Bone, BatteryMedium, Gauge, MapPin, TrendingUp } from 'lucide-react'
 import { getPlayers } from '../db.js'
 import { teamWellnessSnapshot, teamMetricTrend, teamBienestarDates, teamPainBreakdown } from '../bienestarStats.js'
 import { formatDateShort, parseISODate } from '../dateUtils.js'
 import TrendChart from './TrendChart.jsx'
+import PageHeader from './PageHeader.jsx'
 
 const MODOS = [
   { id: 'general', label: 'General (mezcla)' },
@@ -35,15 +36,15 @@ function HeroStat({ label, value, unit, sub }) {
 
 function HeroCard({ icon: Icon, title, dateLabel, children }) {
   return (
-    <div className="card" style={{ background: 'linear-gradient(135deg, var(--red-800) 0%, var(--red-600) 100%)', color: '#fff', border: 'none' }}>
-      <div className="row spread" style={{ marginBottom: 16 }}>
+    <div className="card hero-card">
+      <div className="row spread" style={{ marginBottom: 16, position: 'relative' }}>
         <div className="row" style={{ gap: 8 }}>
           <Icon size={18} />
-          <h4 style={{ color: '#fff', margin: 0 }}>{title}</h4>
+          <h4 style={{ margin: 0 }}>{title}</h4>
         </div>
-        {dateLabel && <span style={{ fontSize: 11.5, opacity: 0.85 }}>{dateLabel}</span>}
+        {dateLabel && <span className="hero-card__label" style={{ fontSize: 11.5 }}>{dateLabel}</span>}
       </div>
-      <div className="row" style={{ gap: 32 }}>{children}</div>
+      <div className="row" style={{ gap: 32, position: 'relative' }}>{children}</div>
     </div>
   )
 }
@@ -54,8 +55,10 @@ function MetricTrendCard({ metric, players }) {
   return (
     <div className="card">
       <div className="row spread" style={{ marginBottom: 10 }}>
-        <div className="row" style={{ gap: 7 }}>
-          <metric.icon size={15} color={metric.color} />
+        <div className="row" style={{ gap: 9 }}>
+          <div className="icon-chip" style={{ '--chip-color': metric.color, width: 26, height: 26, borderRadius: 8 }}>
+            <metric.icon size={14} />
+          </div>
           <h4 style={{ margin: 0, fontSize: 13.5 }}>{metric.label}</h4>
         </div>
         <span style={{ fontFamily: 'var(--font-head)', fontWeight: 800, fontSize: 18, color: metric.color }}>
@@ -83,10 +86,7 @@ export default function BienestarView() {
   if (dates.length === 0) {
     return (
       <div className="stack">
-        <div>
-          <h2 className="section-title">Bienestar</h2>
-          <p className="section-hint">Wellness (pre-entreno) y RPE (post-entreno), mezclados y por separado.</p>
-        </div>
+        <PageHeader icon={HeartPulse} title="Bienestar" hint="Wellness (pre-entreno) y RPE (post-entreno), mezclados y por separado." />
         {equipos.length > 1 && (
           <div className="chip-group">
             {equipos.map((eq) => (
@@ -109,12 +109,7 @@ export default function BienestarView() {
 
   return (
     <div className="stack">
-      <div className="row spread">
-        <div>
-          <h2 className="section-title">Bienestar</h2>
-          <p className="section-hint">Wellness (pre-entreno) y RPE (post-entreno), mezclados y por separado.</p>
-        </div>
-      </div>
+      <PageHeader icon={HeartPulse} title="Bienestar" hint="Wellness (pre-entreno) y RPE (post-entreno), mezclados y por separado." />
 
       <div className="row spread" style={{ flexWrap: 'wrap', gap: 10 }}>
         <div className="chip-group">
@@ -139,11 +134,17 @@ export default function BienestarView() {
           </HeroCard>
           <div className="grid cols-2">
             <div className="card">
-              <h4 style={{ marginBottom: 10, fontSize: 13.5 }}>RPE medio por día</h4>
+              <div className="row" style={{ gap: 9, marginBottom: 12 }}>
+                <div className="icon-chip" style={{ '--chip-color': 'var(--red-600)' }}><Flame size={15} /></div>
+                <h4 style={{ margin: 0, fontSize: 13.5 }}>RPE medio por día</h4>
+              </div>
               <TrendChart data={rpeTrend} color="var(--red-600)" min={0} max={10} />
             </div>
             <div className="card">
-              <h4 style={{ marginBottom: 10, fontSize: 13.5 }}>Bienestar general por día</h4>
+              <div className="row" style={{ gap: 9, marginBottom: 12 }}>
+                <div className="icon-chip" style={{ '--chip-color': 'var(--success-600)' }}><TrendingUp size={15} /></div>
+                <h4 style={{ margin: 0, fontSize: 13.5 }}>Bienestar general por día</h4>
+              </div>
               <TrendChart data={wellnessTrend} color="var(--success-600)" min={1} max={5} />
             </div>
           </div>
@@ -161,8 +162,8 @@ export default function BienestarView() {
             ))}
           </div>
           <div className="card">
-            <div className="row" style={{ gap: 7, marginBottom: 10 }}>
-              <MapPin size={15} color="var(--danger-600)" />
+            <div className="row" style={{ gap: 9, marginBottom: 12 }}>
+              <div className="icon-chip" style={{ '--chip-color': 'var(--danger-600)' }}><MapPin size={15} /></div>
               <h4 style={{ margin: 0, fontSize: 13.5 }}>Zonas de dolor reportadas (último día)</h4>
             </div>
             {painLatest.length === 0 ? (
@@ -194,7 +195,10 @@ export default function BienestarView() {
             <HeroStat label="RPE medio" unit="/10" value={snap.rpeAvg} />
           </HeroCard>
           <div className="card">
-            <h4 style={{ marginBottom: 10, fontSize: 13.5 }}>RPE medio por día</h4>
+            <div className="row" style={{ gap: 9, marginBottom: 12 }}>
+              <div className="icon-chip" style={{ '--chip-color': 'var(--red-600)' }}><Flame size={15} /></div>
+              <h4 style={{ margin: 0, fontSize: 13.5 }}>RPE medio por día</h4>
+            </div>
             <TrendChart data={rpeTrend} color="var(--red-600)" min={0} max={10} maxPoints={16} height={150} />
           </div>
         </div>

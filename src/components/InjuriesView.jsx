@@ -3,6 +3,7 @@ import { Bandage, Plus, AlertTriangle } from 'lucide-react'
 import { getInjuries, getPlayers } from '../db.js'
 import PlayerAvatar from './PlayerAvatar.jsx'
 import InjuryModal from './InjuryModal.jsx'
+import PageHeader from './PageHeader.jsx'
 import { formatDateShort, parseISODate } from '../dateUtils.js'
 
 const ESTADO_BADGE = {
@@ -32,16 +33,12 @@ export default function InjuriesView() {
 
   return (
     <div>
-      <div className="row spread" style={{ marginBottom: 16 }}>
-        <div>
-          <h2 className="section-title">Lesiones</h2>
-          <p className="section-hint">Seguimiento médico de la plantilla</p>
-        </div>
+      <PageHeader icon={Bandage} title="Lesiones" hint="Seguimiento médico de la plantilla">
         <button type="button" className="btn btn-primary" onClick={() => setEditing({})} disabled={players.length === 0}>
           <Plus size={15} />
           Nueva lesión
         </button>
-      </div>
+      </PageHeader>
 
       {activas.length > 0 ? (
         <div className="banner banner-danger" style={{ marginBottom: 16 }}>

@@ -3,6 +3,7 @@ import { ShieldPlus, ShieldHalf } from 'lucide-react'
 import { getOpponents } from '../db.js'
 import OpponentModal from './OpponentModal.jsx'
 import PlayerAvatar from './PlayerAvatar.jsx'
+import PageHeader from './PageHeader.jsx'
 
 export default function OpponentsView({ initialOpponentId, onConsumeInitial }) {
   const [refreshKey, setRefreshKey] = useState(0)
@@ -23,20 +24,16 @@ export default function OpponentsView({ initialOpponentId, onConsumeInitial }) {
 
   return (
     <div>
-      <div className="row spread" style={{ marginBottom: 16 }}>
-        <div>
-          <h2 className="section-title">Rivales</h2>
-          <p className="section-hint">División de Honor Juvenil, Grupo 1 · {opponents.length} equipos</p>
-        </div>
+      <PageHeader icon={ShieldHalf} title="Rivales" hint={`División de Honor Juvenil, Grupo 1 · ${opponents.length} equipos`}>
         <button type="button" className="btn btn-primary" onClick={() => setEditing({ scouting: {} })}>
           <ShieldPlus size={15} />
           Añadir rival
         </button>
-      </div>
+      </PageHeader>
 
       <div className="tile-grid">
         {opponents.map((o) => (
-          <div key={o.id} className="tile-card" onClick={() => setEditing(o)}>
+          <div key={o.id} className="tile-card tile-card--opponent" onClick={() => setEditing(o)}>
             <div className="tile-card__top">
               <PlayerAvatar fileId={o.shieldFileId} />
               <div>

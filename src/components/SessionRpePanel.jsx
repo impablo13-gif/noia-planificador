@@ -37,10 +37,7 @@ export default function SessionRpePanel({ fecha, players, title = 'RPE de la ses
   }
 
   return (
-    <div
-      className="card"
-      style={{ background: 'linear-gradient(135deg, var(--red-800) 0%, var(--red-600) 100%)', color: '#fff', border: 'none' }}
-    >
+    <div className="card hero-card">
       <div className="row spread" style={{ marginBottom: entries.length || candidates.length ? 12 : 0 }}>
         <div className="row" style={{ gap: 8 }}>
           <Flame size={18} />

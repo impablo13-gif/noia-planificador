@@ -9,7 +9,7 @@ import { formatDateShort, parseISODate } from '../dateUtils.js'
 
 const MEDALS = ['🥇', '🥈', '🥉']
 
-function LeaderboardCard({ title, icon: Icon, iconColor, iconBg, barColor, players, getValue, unit, emptyText }) {
+function LeaderboardCard({ title, icon: Icon, iconColor, barColor, players, getValue, unit, emptyText }) {
   const ranked = players
     .map((p) => ({ p, value: getValue(p) }))
     .filter((r) => r.value > 0)
@@ -20,8 +20,8 @@ function LeaderboardCard({ title, icon: Icon, iconColor, iconBg, barColor, playe
   return (
     <div className="card" style={{ padding: 18 }}>
       <div className="row" style={{ gap: 10, marginBottom: 16 }}>
-        <div style={{ width: 32, height: 32, borderRadius: 10, background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <Icon size={16} color={iconColor} />
+        <div className="icon-chip" style={{ '--chip-color': iconColor }}>
+          <Icon size={16} />
         </div>
         <h4 style={{ fontSize: 14 }}>{title}</h4>
       </div>
@@ -100,9 +100,11 @@ function TeamWellnessCard({ snap }) {
   if (!snap.fecha) {
     return (
       <div className="card">
-        <div className="leaderboard-card__head">
-          <HeartPulse size={16} color="var(--red-600)" />
-          <h4>Bienestar del equipo</h4>
+        <div className="row" style={{ gap: 10, marginBottom: 16 }}>
+          <div className="icon-chip" style={{ '--chip-color': 'var(--red-600)' }}>
+            <HeartPulse size={16} />
+          </div>
+          <h4 style={{ fontSize: 14 }}>Bienestar del equipo</h4>
         </div>
         <p className="text-muted" style={{ fontSize: 12.5 }}>Aún no hay respuestas del cuestionario de bienestar sincronizadas.</p>
       </div>
@@ -113,8 +115,8 @@ function TeamWellnessCard({ snap }) {
 
   return (
     <div
-      className="card"
-      style={{ padding: 22, background: 'linear-gradient(135deg, var(--red-800) 0%, var(--red-600) 100%)', color: '#fff', border: 'none' }}
+      className="card hero-card"
+      style={{ padding: 22 }}
     >
       <div className="row spread" style={{ marginBottom: 18, alignItems: 'flex-start' }}>
         <div className="row" style={{ gap: 8 }}>
@@ -154,7 +156,6 @@ export default function RosterDashboard({ players }) {
         title="Más goles"
         icon={Goal}
         iconColor="var(--red-600)"
-        iconBg="var(--red-100)"
         barColor="linear-gradient(90deg, var(--red-700), var(--red-500))"
         players={players}
         getValue={(p) => npaFor(p).goles}
@@ -164,7 +165,6 @@ export default function RosterDashboard({ players }) {
         title="Más asistencias"
         icon={Handshake}
         iconColor="var(--blue-600)"
-        iconBg="var(--blue-100)"
         barColor="linear-gradient(90deg, var(--blue-700), var(--blue-500))"
         players={players}
         getValue={(p) => npaFor(p).asistencias}
@@ -174,7 +174,6 @@ export default function RosterDashboard({ players }) {
         title="Más minutos"
         icon={Clock}
         iconColor="var(--warn-600)"
-        iconBg="var(--warn-100)"
         barColor="linear-gradient(90deg, #a1671b, #d9a94a)"
         players={players}
         getValue={(p) => Math.round(npaFor(p).seconds / 60)}
@@ -185,7 +184,6 @@ export default function RosterDashboard({ players }) {
         title="RPE medio por jugador"
         icon={Flame}
         iconColor="var(--red-600)"
-        iconBg="var(--red-100)"
         barColor="linear-gradient(90deg, var(--red-700), var(--red-500))"
         players={players}
         getValue={(p) => Math.round((playerAverageRpe(p.id).avg || 0) * 10) / 10}

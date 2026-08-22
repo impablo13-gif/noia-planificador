@@ -1,8 +1,10 @@
 import { useState, useMemo } from 'react'
+import { Sparkles } from 'lucide-react'
 import assistantPrompt from '../assistantPrompt.md?raw'
 import { getMatches, getOpponents, getPlayers, getInjuries, agendaClub, agendaPersonal } from '../db.js'
 import { toISODate, formatDateLong } from '../dateUtils.js'
 import PromptWorkbench from './PromptWorkbench.jsx'
+import PageHeader from './PageHeader.jsx'
 
 function buildDataSummary() {
   const todayISO = toISODate(new Date())
@@ -95,10 +97,11 @@ export default function AssistantView() {
 
   return (
     <div>
-      <h2 className="section-title">Asistente</h2>
-      <p className="section-hint">
-        Genera un resumen con los datos actuales del club, cópialo y pégalo en cualquier chat de Claude (este mismo, o claude.ai) para pedir recomendaciones. No hace falta clave de API.
-      </p>
+      <PageHeader
+        icon={Sparkles}
+        title="Asistente"
+        hint="Genera un resumen con los datos actuales del club, cópialo y pégalo en cualquier chat de Claude (este mismo, o claude.ai) para pedir recomendaciones. No hace falta clave de API."
+      />
 
       <PromptWorkbench
         prompt={fullPrompt}

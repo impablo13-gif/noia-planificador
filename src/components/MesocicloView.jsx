@@ -1,9 +1,11 @@
 import { useState, useMemo } from 'react'
+import { LayoutGrid } from 'lucide-react'
 import mesocicloPrompt from '../mesocicloPrompt.md?raw'
 import { getMatches, getOpponents, getPlayers, getInjuries } from '../db.js'
 import { getEventsInRange } from '../eventsEngine.js'
 import { toISODate, parseISODate, addDays, formatDateLong } from '../dateUtils.js'
 import PromptWorkbench from './PromptWorkbench.jsx'
+import PageHeader from './PageHeader.jsx'
 
 const PRIORIDADES_MDJ = [
   'Ataque Posicional (AP)', 'Defensa Posicional (DP)', 'Transición Ofensiva (TO)', 'Transición Defensiva (TD)',
@@ -106,10 +108,11 @@ export default function MesocicloView() {
 
   return (
     <div>
-      <h2 className="section-title">Mesociclos y microciclos</h2>
-      <p className="section-hint">
-        Genera un prompt fundamentado en tus apuntes RFEF de planificación y desarrollo físico (Nacional A y B) más el Modelo de Juego del club. Cópialo y pégalo en cualquier chat de Claude — no hace falta clave de API.
-      </p>
+      <PageHeader
+        icon={LayoutGrid}
+        title="Mesociclos y microciclos"
+        hint="Genera un prompt fundamentado en tus apuntes RFEF de planificación y desarrollo físico (Nacional A y B) más el Modelo de Juego del club. Cópialo y pégalo en cualquier chat de Claude — no hace falta clave de API."
+      />
 
       <PromptWorkbench
         prompt={fullPrompt}

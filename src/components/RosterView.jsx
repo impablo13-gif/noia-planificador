@@ -9,6 +9,7 @@ import PlayerModal from './PlayerModal.jsx'
 import RosterDashboard from './RosterDashboard.jsx'
 import WellnessBadge from './WellnessBadge.jsx'
 import PasteBienestarModal from './PasteBienestarModal.jsx'
+import PageHeader from './PageHeader.jsx'
 
 function foldAccents(s) {
   return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
@@ -103,27 +104,21 @@ export default function RosterView() {
 
   return (
     <div>
-      <div className="row spread" style={{ marginBottom: 16 }}>
-        <div>
-          <h2 className="section-title">Plantilla</h2>
-          <p className="section-hint">Temporada 26/27 · {players.length} jugador{players.length === 1 ? '' : 'es'}</p>
-        </div>
-        <div className="row">
-          <label className="btn btn-secondary" style={{ cursor: 'pointer' }}>
-            <FileJson size={15} />
-            Importar JSON
-            <input type="file" accept="application/json,.json" onChange={handleImportFile} style={{ display: 'none' }} />
-          </label>
-          <button type="button" className="btn btn-secondary" onClick={() => setPastingBienestar(true)}>
-            <ClipboardPaste size={15} />
-            Pegar bienestar
-          </button>
-          <button type="button" className="btn btn-primary" onClick={() => setEditing(newDraft())}>
-            <UserPlus size={15} />
-            Añadir jugador
-          </button>
-        </div>
-      </div>
+      <PageHeader icon={Users} title="Plantilla" hint={`Temporada 26/27 · ${players.length} jugador${players.length === 1 ? '' : 'es'}`}>
+        <label className="btn btn-secondary" style={{ cursor: 'pointer' }}>
+          <FileJson size={15} />
+          Importar JSON
+          <input type="file" accept="application/json,.json" onChange={handleImportFile} style={{ display: 'none' }} />
+        </label>
+        <button type="button" className="btn btn-secondary" onClick={() => setPastingBienestar(true)}>
+          <ClipboardPaste size={15} />
+          Pegar bienestar
+        </button>
+        <button type="button" className="btn btn-primary" onClick={() => setEditing(newDraft())}>
+          <UserPlus size={15} />
+          Añadir jugador
+        </button>
+      </PageHeader>
 
       {importMsg && (
         <div className="banner banner-info" style={{ marginBottom: 16 }}>

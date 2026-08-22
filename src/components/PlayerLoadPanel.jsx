@@ -82,7 +82,7 @@ export default function PlayerLoadPanel({ playerId, cargaFisica, onChange }) {
         <div className="empty-state">
           <HeartPulse size={32} />
           <h3>Sin cuestionarios de bienestar todavía</h3>
-          <p>En cuanto sincronices el CSV del cuestionario diario desde Plantilla ("Actualizar bienestar"), aquí aparecerá la evolución de este jugador.</p>
+          <p>En cuanto pegues respuestas del cuestionario diario desde Plantilla ("Pegar bienestar"), aquí aparecerá la evolución de este jugador.</p>
         </div>
       </div>
     )
@@ -103,14 +103,8 @@ export default function PlayerLoadPanel({ playerId, cargaFisica, onChange }) {
 
       {/* RPE en grande: es la métrica que más importa para dosificar la carga. */}
       <div
-        className="card"
-        style={{
-          padding: 18,
-          marginBottom: 14,
-          background: 'linear-gradient(135deg, var(--red-800) 0%, var(--red-600) 100%)',
-          color: '#fff',
-          border: 'none',
-        }}
+        className="card hero-card"
+        style={{ padding: 18, marginBottom: 14 }}
       >
         <div className="row spread" style={{ alignItems: 'flex-start' }}>
           <div>

@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react'
-import { ChevronLeft, ChevronRight, ClipboardCheck, Users } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ClipboardCheck, Users, Dumbbell, Trophy } from 'lucide-react'
 import { getMonthMatrix, dowLabels, monthLabel, toISODate } from '../dateUtils.js'
 import { getEventsInRange } from '../eventsEngine.js'
 import { getPlayers, getAsistenciaForDate } from '../db.js'
 import AsistenciaModal from './AsistenciaModal.jsx'
+import PageHeader from './PageHeader.jsx'
 
 export default function AsistenciaView() {
   const today = new Date()
@@ -26,8 +27,8 @@ export default function AsistenciaView() {
 
   const sessions = []
   Object.entries(eventsMap).forEach(([iso, day]) => {
-    day.trainings.filter((t) => !t.cancelled).forEach((t) => sessions.push({ fecha: iso, label: `Entreno · ${t.label}` }))
-    day.matches.forEach((m) => sessions.push({ fecha: iso, label: `Partido${m.rivalName ? ` vs ${m.rivalName}` : ''}` }))
+    day.trainings.filter((t) => !t.cancelled).forEach((t) => sessions.push({ fecha: iso, label: `Entreno · ${t.label}`, kind: 'entreno' }))
+    day.matches.forEach((m) => sessions.push({ fecha: iso, label: `Partido${m.rivalName ? ` vs ${m.rivalName}` : ''}`, kind: 'partido' }))
   })
   sessions.sort((a, b) => (a.fecha < b.fecha ? -1 : 1))
 
@@ -37,21 +38,17 @@ export default function AsistenciaView() {
 
   return (
     <div className="stack">
-      <div className="row spread">
-        <div>
-          <h2 className="section-title">Asistencia</h2>
-          <p className="section-hint">Quién estuvo presente en cada entreno y partido — sirve para saber a quién pedir RPE.</p>
-        </div>
-        <div className="row" style={{ gap: 8 }}>
+      <PageHeader icon={ClipboardCheck} title="Asistencia" hint="Quién estuvo presente en cada entreno y partido — sirve para saber a quién pedir RPE.">
+        <div className="row" style={{ gap: 4 }}>
           <button type="button" className="btn btn-ghost btn-icon" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))} aria-label="Mes anterior">
             <ChevronLeft size={18} />
           </button>
-          <span className="calendar-nav__title" style={{ fontSize: 15 }}>{monthLabel(cursor.getFullYear(), cursor.getMonth())}</span>
+          <span className="calendar-nav__title" style={{ fontSize: 15, minWidth: 130, textAlign: 'center' }}>{monthLabel(cursor.getFullYear(), cursor.getMonth())}</span>
           <button type="button" className="btn btn-ghost btn-icon" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))} aria-label="Mes siguiente">
             <ChevronRight size={18} />
           </button>
         </div>
-      </div>
+      </PageHeader>
 
       {equipos.length > 1 && (
         <div className="chip-group">
@@ -68,21 +65,26 @@ export default function AsistenciaView() {
         </div>
       ) : (
         <div className="card">
-          {sessions.map((s) => {
+          {sessions.map((s, i) => {
             const asist = getAsistenciaForDate(s.fecha)
             const count = asist
               ? equipoPlayers.filter((p) => (asist.estados[p.id] || 'presente') === 'presente').length
               : null
             return (
               <button
-                key={s.fecha + s.label}
+                key={s.fecha + s.label + i}
                 type="button"
                 className="match-row"
-                style={{ width: '100%', border: 'none', cursor: 'pointer', textAlign: 'left', background: 'transparent' }}
+                style={{ width: '100%', border: 'none', cursor: 'pointer', textAlign: 'left', background: count != null ? 'var(--success-100)' : 'var(--gray-50)' }}
                 onClick={() => setOpening(s)}
               >
                 <span className="text-muted" style={{ minWidth: 90 }}>{dowLabels()[(new Date(s.fecha).getDay() + 6) % 7]} {s.fecha.slice(8, 10)}/{s.fecha.slice(5, 7)}</span>
-                <span style={{ flex: 1 }}>{s.label}</span>
+                <span className="row" style={{ flex: 1, gap: 8 }}>
+                  {s.kind === 'partido'
+                    ? <Trophy size={14} color="var(--red-600)" />
+                    : <Dumbbell size={14} color="var(--blue-600)" />}
+                  {s.label}
+                </span>
                 {count != null ? (
                   <span className="badge badge-success"><Users size={11} /> {count}/{equipoPlayers.length}</span>
                 ) : (

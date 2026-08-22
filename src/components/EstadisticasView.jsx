@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { RefreshCw, ChevronRight, ArrowLeft } from 'lucide-react'
+import { RefreshCw, ChevronRight, ArrowLeft, BarChart3, ListOrdered } from 'lucide-react'
 import { getPartidosNpa, getPlayers, getMatches } from '../db.js'
 import { isNpaExport, syncNpaExport } from '../npaSync.js'
 import { buildMatchRows } from '../statsEngine.js'
 import { formatDateShort, formatDateLong, parseISODate } from '../dateUtils.js'
 import StatsDashboard from './StatsDashboard.jsx'
+import PageHeader from './PageHeader.jsx'
 
 const COMPETITION_ROW_CLASS = { Liga: 'match-row--liga', Amistoso: 'match-row--amistoso', Copa: 'match-row--copa' }
 
@@ -61,32 +62,26 @@ export default function EstadisticasView() {
             <ArrowLeft size={14} />
             Volver al global
           </button>
-          <div className="row spread" style={{ marginBottom: 16 }}>
-            <div>
-              <h2 className="section-title">{openMatch.rivalName}</h2>
-              <p className="section-hint">{formatDateLong(parseISODate(openMatch.date.slice(0, 10)))}{openMatch.venue ? ` · ${openMatch.venue}` : ''}</p>
-            </div>
+          <PageHeader
+            icon={BarChart3}
+            title={openMatch.rivalName}
+            hint={`${formatDateLong(parseISODate(openMatch.date.slice(0, 10)))}${openMatch.venue ? ` · ${openMatch.venue}` : ''}`}
+          >
             <span className="badge badge-red" style={{ fontSize: 15, padding: '8px 16px' }}>
               Noia {openMatch.teamGoals} - {openMatch.rivalScore} {openMatch.rivalName}
             </span>
-          </div>
+          </PageHeader>
           <StatsDashboard matches={[openMatch]} players={players} />
         </>
       ) : (
         <>
-          <div className="row spread" style={{ marginBottom: 16 }}>
-            <div>
-              <h2 className="section-title">Estadísticas</h2>
-              <p className="section-hint">
-                Datos de partido importados de NPA Stats{activeEquipo ? ` · ${activeEquipo}` : ''}
-              </p>
-            </div>
+          <PageHeader icon={BarChart3} title="Estadísticas" hint={`Datos de partido importados de NPA Stats${activeEquipo ? ` · ${activeEquipo}` : ''}`}>
             <label className="btn btn-primary" style={{ cursor: 'pointer' }}>
               <RefreshCw size={15} />
               Actualizar desde NPA Stats
               <input type="file" accept="application/json,.json" onChange={handleUpdateFile} style={{ display: 'none' }} />
             </label>
-          </div>
+          </PageHeader>
 
           {syncMsg && <div className="banner banner-info" style={{ marginBottom: 16 }}>{syncMsg}</div>}
 
@@ -104,8 +99,11 @@ export default function EstadisticasView() {
 
           {matches.length > 0 && (
             <div className="card" style={{ marginTop: 16 }}>
-              <h4 style={{ fontSize: 14, marginBottom: 4 }}>Partido a partido</h4>
-              <p className="section-hint" style={{ marginBottom: 6 }}>Toca un partido para ver sus estadísticas por separado, aquí mismo.</p>
+              <div className="row" style={{ gap: 9, marginBottom: 4 }}>
+                <div className="icon-chip" style={{ '--chip-color': 'var(--blue-600)' }}><ListOrdered size={15} /></div>
+                <h4 style={{ margin: 0, fontSize: 14 }}>Partido a partido</h4>
+              </div>
+              <p className="section-hint" style={{ marginBottom: 10, marginTop: 4 }}>Toca un partido para ver sus estadísticas por separado, aquí mismo.</p>
               {rows.map((m) => {
                 const competition = competitionByNpaId.get(m.id) || 'Amistoso'
                 return (

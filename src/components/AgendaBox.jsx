@@ -28,9 +28,11 @@ export default function AgendaBox({ title, icon: Icon = ListTodo, api, placehold
 
   return (
     <div className="card">
-      <div className="row spread" style={{ marginBottom: 10 }}>
-        <div className="row" style={{ gap: 8 }}>
-          <Icon size={16} color="var(--red-700)" />
+      <div className="row spread" style={{ marginBottom: 14 }}>
+        <div className="row" style={{ gap: 10 }}>
+          <div className="icon-chip" style={{ '--chip-color': 'var(--red-700)' }}>
+            <Icon size={16} />
+          </div>
           <h3 className="section-title" style={{ marginBottom: 0 }}>{title}</h3>
         </div>
       </div>
