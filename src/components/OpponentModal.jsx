@@ -6,6 +6,7 @@ import { updateOpponent, removeOpponent, addOpponent } from '../db.js'
 
 export default function OpponentModal({ opponent, onClose, onSaved }) {
   const [name, setName] = useState(opponent.name || '')
+  const [siglas, setSiglas] = useState(opponent.siglas || '')
   const [shieldFileId, setShieldFileId] = useState(opponent.shieldFileId || null)
   const [scouting, setScouting] = useState({
     resumen: '', sistemaJuego: '', jugadoresClave: '', puntosFuertes: '',
@@ -20,7 +21,7 @@ export default function OpponentModal({ opponent, onClose, onSaved }) {
 
   function handleSave() {
     const highlights = highlightsText.split('\n').map((l) => l.trim()).filter(Boolean).slice(0, 4)
-    const patch = { name, shieldFileId, scouting: { ...scouting, highlights } }
+    const patch = { name, siglas: siglas.trim().toUpperCase(), shieldFileId, scouting: { ...scouting, highlights } }
     if (opponent.id) {
       updateOpponent(opponent.id, patch)
     } else {
@@ -58,9 +59,22 @@ export default function OpponentModal({ opponent, onClose, onSaved }) {
       <div className="stack">
         <ShieldPhotoField fileId={shieldFileId} onChange={setShieldFileId} />
 
-        <div className="field">
-          <label className="field__label">Nombre del club</label>
-          <input type="text" value={name} onChange={(e) => setName(e.target.value)} />
+        <div className="grid cols-2">
+          <div className="field">
+            <label className="field__label">Nombre del club</label>
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <div className="field">
+            <label className="field__label">Siglas <span className="field__optional">(opcional)</span></label>
+            <input
+              type="text"
+              value={siglas}
+              onChange={(e) => setSiglas(e.target.value)}
+              placeholder="Ej. RMA"
+              style={{ textTransform: 'uppercase' }}
+            />
+            <p className="field__help">Si la pones, sale en el calendario en vez del nombre completo — útil para no acortar tú a mano cada rival.</p>
+          </div>
         </div>
 
         {(opponent.pabellon || opponent.contacto || opponent.direccion) && (

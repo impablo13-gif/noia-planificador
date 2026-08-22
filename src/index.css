@@ -927,23 +927,25 @@ textarea::placeholder {
   font-weight: 700;
 }
 
-/* Fuera de la semana activa, el partido se ve en pequeño: escudo y rival en
-   fila, sin el layout apilado pensado para la casilla grande. */
-.calendar-event--match {
-  flex-direction: row;
-  text-align: left;
-  gap: 6px;
-  white-space: normal;
-  overflow: visible;
-  padding: 2px 5px;
-}
-
-/* En la semana activa sí se apila (escudo arriba, nombre debajo) para
-   aprovechar la casilla grande. */
-.calendar-day.is-match-day.is-current-week .calendar-event--match {
+/* Escudo arriba, nombre del rival debajo, centrado — usa todo el ancho de
+   la casilla para el nombre en vez de repartirlo con el escudo en fila
+   (que en una columna estrecha parte el nombre letra a letra). Va como
+   ".calendar-event.calendar-event--match" (las dos clases) para ganarle
+   siempre a ".calendar-event" en la cascada, esté donde esté declarada esa
+   regla base — si no, el nombre del rival vuelve a cortarse con "…". */
+.calendar-event.calendar-event--match {
   flex-direction: column;
   align-items: center;
   text-align: center;
+  gap: 3px;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  padding: 3px 4px;
+}
+
+/* En la semana activa la casilla es más grande: más aire alrededor. */
+.calendar-day.is-match-day.is-current-week .calendar-event--match {
   gap: 4px;
   padding: 8px 4px;
 }

@@ -15,6 +15,15 @@ function rivalName(opponents, id) {
   return o ? o.name : 'Por confirmar'
 }
 
+// En el calendario se prioriza la sigla (si el rival la tiene puesta) para
+// no llenar la casilla con nombres largos — el nombre completo sigue
+// disponible al pasar el ratón por encima.
+function rivalCalendarLabel(opponents, id) {
+  const o = opponents.find((x) => x.id === id)
+  if (!o) return 'Por confirmar'
+  return o.siglas || o.name
+}
+
 const COMPETITION_EVENT_CLASS = { Liga: 'is-comp-liga', Amistoso: 'is-comp-amistoso', Copa: 'is-comp-copa' }
 
 function isEmptyDay(events) {
@@ -137,7 +146,7 @@ export default function CalendarView({ onGoToRival }) {
                           <PlayerAvatar fileId={opponents.find((o) => o.id === m.opponentId)?.shieldFileId} size="sm" />
                           <span className="calendar-event__venue">{m.isHome ? '🏠' : '✈️'}</span>
                         </span>
-                        <span className="calendar-event__rival">{rivalName(opponents, m.opponentId)}</span>
+                        <span className="calendar-event__rival" title={rivalName(opponents, m.opponentId)}>{rivalCalendarLabel(opponents, m.opponentId)}</span>
                       </span>
                     ))}
                   </div>
