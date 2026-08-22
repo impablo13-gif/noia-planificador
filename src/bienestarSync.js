@@ -4,15 +4,24 @@
 // sin necesitar conexión en vivo a Google Sheets (evita problemas de
 // permisos/CORS con la hoja).
 //
-// La fecha real de cada respuesta se calcula así: si "Fecha de hoy" contiene
-// una fecha con año verosímil (temporada actual), se usa esa — es la fecha a
-// la que el jugador se refiere, y varios responden de madrugada o a la
-// mañana siguiente sobre la sesión del día anterior, así que fiarse solo de
-// "Marca temporal" partiría esas respuestas en dos días distintos. Si
-// "Fecha de hoy" no es válida o el año no es verosímil (algunos jugadores
-// pusieron su fecha de nacimiento el primer día, o hay erratas de tecleo tipo
-// "0026"), se cae de vuelta a "Marca temporal" (el timestamp automático de
-// Google Forms, que nunca falla).
+// La fecha real de cada respuesta se calcula así:
+//
+// Para el RPE (post-entreno): si se responde por la mañana o hasta media
+// tarde (antes de las 17:00, hora de "Marca temporal"), es sobre la sesión
+// de AYER, sin excepción — a esas horas el entreno de hoy (por la tarde/
+// noche) todavía no ha pasado. En ese caso se ignora "Fecha de hoy" a
+// propósito: muchos jugadores, al rellenarlo la mañana siguiente, escriben
+// ahí el día en el que están (hoy), no el día del entreno que describen
+// (ayer), así que fiarse de ese campo en este caso concreto daría la fecha
+// equivocada. Respondido ya de tarde/noche (17:00 en adelante), se asume
+// que es sobre el entreno de hoy mismo.
+//
+// Para el Wellness (pre-entreno) y para cualquier caso donde no aplique lo
+// anterior: si "Fecha de hoy" contiene una fecha con año verosímil (temporada
+// actual), se usa esa. Si no es válida o el año no es verosímil (algunos
+// jugadores pusieron su fecha de nacimiento el primer día, o hay erratas de
+// tecleo tipo "0026"), se cae de vuelta a la fecha de "Marca temporal" (el
+// timestamp automático de Google Forms, que nunca falla).
 //
 // El nombre que cada jugador escribe en el formulario casi nunca coincide
 // tal cual con el de la plantilla (motes, solo el nombre de pila, apellidos
@@ -34,6 +43,7 @@
 // `${playerId}__${fecha}` sin que uno borre lo que puso el otro.
 
 import { getPlayers, getBienestar, upsertBienestar, getBienestarAliases, setBienestarAlias, getAsistenciaForDate } from './db.js'
+import { parseISODate, addDays, toISODate } from './dateUtils.js'
 
 function toISOFromTimestamp(ts) {
   const datePart = (ts || '').trim().split(' ')[0]
@@ -48,6 +58,19 @@ function toISOFromTimestamp(ts) {
   return null
 }
 
+// Hora (0-23) de "Marca temporal" — segunda "palabra" del timestamp, antes
+// de los dos puntos. Null si no se puede leer.
+function timestampHour(ts) {
+  const parts = (ts || '').trim().split(/\s+/)
+  if (parts.length < 2) return null
+  const m = parts[1].match(/^(\d{1,2}):/)
+  return m ? Number(m[1]) : null
+}
+
+// Antes de esta hora, una respuesta de RPE es sobre el entreno de AYER —
+// coincide con el criterio de Pablo ("por la mañana o hasta las 16/17").
+const RPE_MORNING_CUTOFF_HOUR = 17
+
 // Año verosímil para "hoy" dentro de una temporada — descarta fechas de
 // nacimiento (años ~2005-2015 en jugadores juveniles) y erratas de tecleo.
 function isPlausibleTodayYear(iso) {
@@ -55,10 +78,21 @@ function isPlausibleTodayYear(iso) {
   return year >= 2024 && year <= 2030
 }
 
-function resolveFecha(marcaTemporal, fechaDeHoy) {
+// `hasRpe` marca si la fila viene de un formulario que pregunta RPE (el
+// "Cuestionario RPE" o el combinado antiguo) — solo en ese caso se aplica la
+// regla de "respondido antes de las 17:00 → es de ayer", porque el Wellness
+// es de antes del entreno y una respuesta de mañana ahí sí es de hoy.
+function resolveFecha(marcaTemporal, fechaDeHoy, hasRpe) {
+  const marcaFecha = toISOFromTimestamp(marcaTemporal)
+  if (hasRpe && marcaFecha) {
+    const hour = timestampHour(marcaTemporal)
+    if (hour != null && hour < RPE_MORNING_CUTOFF_HOUR) {
+      return toISODate(addDays(parseISODate(marcaFecha), -1))
+    }
+  }
   const fromField = toISOFromTimestamp(fechaDeHoy)
   if (fromField && isPlausibleTodayYear(fromField)) return fromField
-  return toISOFromTimestamp(marcaTemporal)
+  return marcaFecha
 }
 
 export function foldName(s) {
@@ -181,7 +215,7 @@ function syncBienestarRows(rows, colFor) {
     const col = typeof colFor === 'function' ? colFor(r) : colFor
     const nombreSheet = (r[col.nombre] || '').trim()
     if (!nombreSheet) continue
-    const fecha = resolveFecha(r[col.ts], r[col.fechaHoy])
+    const fecha = resolveFecha(r[col.ts], r[col.fechaHoy], col.rpe !== undefined)
     if (!fecha) continue
     const player = matchPlayer(players, nombreSheet, aliases)
     if (!player) { unmatched.add(nombreSheet); continue }
