@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { User } from 'lucide-react'
 import { getFile } from '../db.js'
 
-const SIZE_CLASS = { xs: 'avatar-xs', sm: 'avatar-sm', card: 'avatar-card', lg: 'avatar-lg' }
+const SIZE_CLASS = { xs: 'avatar-xs', sm: 'avatar-sm', card: 'avatar-card', lg: 'avatar-lg', shield: 'avatar-card avatar-shield', 'shield-lg': 'avatar-lg avatar-shield' }
 const SIZE_ICON = { xs: 10, sm: 13, card: 22, lg: 34 }
 
 export default function PlayerAvatar({ fileId, size = 'md' }) {

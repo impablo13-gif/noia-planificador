@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Save, Trash2, MapPin, Phone, User } from 'lucide-react'
 import Modal from './Modal.jsx'
-import FileDrop from './FileDrop.jsx'
+import ShieldPhotoField from './ShieldPhotoField.jsx'
 import { updateOpponent, removeOpponent, addOpponent } from '../db.js'
 
 export default function OpponentModal({ opponent, onClose, onSaved }) {
@@ -56,14 +56,11 @@ export default function OpponentModal({ opponent, onClose, onSaved }) {
       }
     >
       <div className="stack">
-        <div className="row" style={{ alignItems: 'flex-start', gap: 16 }}>
-          <FileDrop fileId={shieldFileId} onChange={setShieldFileId} accept="image/*" label="Subir escudo" />
-          <div style={{ flex: 1 }}>
-            <div className="field">
-              <label className="field__label">Nombre del club</label>
-              <input type="text" value={name} onChange={(e) => setName(e.target.value)} />
-            </div>
-          </div>
+        <ShieldPhotoField fileId={shieldFileId} onChange={setShieldFileId} />
+
+        <div className="field">
+          <label className="field__label">Nombre del club</label>
+          <input type="text" value={name} onChange={(e) => setName(e.target.value)} />
         </div>
 
         {(opponent.pabellon || opponent.contacto || opponent.direccion) && (

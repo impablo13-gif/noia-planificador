@@ -35,7 +35,7 @@ export default function OpponentsView({ initialOpponentId, onConsumeInitial }) {
         {opponents.map((o) => (
           <div key={o.id} className="tile-card tile-card--opponent" onClick={() => setEditing(o)}>
             <div className="tile-card__top">
-              <PlayerAvatar fileId={o.shieldFileId} />
+              <PlayerAvatar fileId={o.shieldFileId} size="shield" />
               <div>
                 <div className="tile-card__name">{o.name}</div>
                 <div className="tile-card__meta">{o.pabellon && o.pabellon !== '—' ? o.pabellon : 'Pabellón sin datos'}</div>

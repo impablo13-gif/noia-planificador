@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Save, Trash2, House, Plane, ShieldHalf, Goal, ShieldAlert, FileText, ExternalLink, Flame } from 'lucide-react'
 import Modal from './Modal.jsx'
 import FileDrop from './FileDrop.jsx'
+import ShieldPhotoField from './ShieldPhotoField.jsx'
 import PlayerAvatar from './PlayerAvatar.jsx'
 import SessionRpePanel from './SessionRpePanel.jsx'
 import { updateMatch, removeMatch, addMatch, addOpponent, getPartidosNpa, getPlayers, getFile, removePartidoNpa } from '../db.js'
@@ -308,17 +309,13 @@ export default function MatchModal({ match, opponents, onClose, onSaved, onGoToR
             </>
           ) : (
             <div className="stack" style={{ gap: 10 }}>
-              <div className="row" style={{ alignItems: 'flex-start', gap: 14 }}>
-                <FileDrop fileId={newRivalShieldFileId} onChange={setNewRivalShieldFileId} accept="image/*" label="Subir escudo" />
-                <div style={{ flex: 1 }}>
-                  <input
-                    type="text"
-                    value={newRivalName}
-                    onChange={(e) => setNewRivalName(e.target.value)}
-                    placeholder="Nombre del club rival"
-                  />
-                </div>
-              </div>
+              <ShieldPhotoField fileId={newRivalShieldFileId} onChange={setNewRivalShieldFileId} />
+              <input
+                type="text"
+                value={newRivalName}
+                onChange={(e) => setNewRivalName(e.target.value)}
+                placeholder="Nombre del club rival"
+              />
               <button
                 type="button"
                 className="link-btn"

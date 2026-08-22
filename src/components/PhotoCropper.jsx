@@ -4,9 +4,13 @@ import Modal from './Modal.jsx'
 
 const OUTPUT_SIZE = 320
 
-// Encuadrador de foto: arrastra para mover, control para hacer zoom. Exporta
-// un cuadrado ya recortado (canvas -> blob) en vez de guardar la imagen tal cual.
-export default function PhotoCropper({ file, onCancel, onSave }) {
+// Encuadrador de foto/escudo: arrastra para mover, control para hacer zoom.
+// Exporta un cuadrado ya recortado (canvas -> blob) en vez de guardar la
+// imagen tal cual. `shape` solo cambia la máscara de vista previa (círculo
+// para caras, cuadrado para escudos, que no son redondos); el archivo
+// resultante es siempre un cuadrado. Los escudos se exportan en PNG para no
+// perder la transparencia del logo (una foto de cara sí puede ir a JPEG).
+export default function PhotoCropper({ file, onCancel, onSave, shape = 'circle', title = 'Encuadrar foto', saveLabel = 'Usar esta foto', helpText = 'Arrastra la imagen para encuadrarla y usa la barra para hacer zoom.' }) {
   const canvasRef = useRef(null)
   const imgRef = useRef(null)
   const dragRef = useRef(null)
@@ -74,21 +78,27 @@ export default function PhotoCropper({ file, onCancel, onSave }) {
   }
 
   function handleSave() {
-    canvasRef.current.toBlob((blob) => {
-      if (blob) onSave(blob)
-    }, 'image/jpeg', 0.92)
+    if (shape === 'square') {
+      canvasRef.current.toBlob((blob) => {
+        if (blob) onSave(blob)
+      }, 'image/png')
+    } else {
+      canvasRef.current.toBlob((blob) => {
+        if (blob) onSave(blob)
+      }, 'image/jpeg', 0.92)
+    }
   }
 
   return (
     <Modal
-      title="Encuadrar foto"
+      title={title}
       onClose={onCancel}
       footer={
         <>
           <button type="button" className="btn btn-secondary" onClick={onCancel}>Cancelar</button>
           <button type="button" className="btn btn-primary" onClick={handleSave} disabled={!ready}>
             <Check size={14} />
-            Usar esta foto
+            {saveLabel}
           </button>
         </>
       }
@@ -96,9 +106,11 @@ export default function PhotoCropper({ file, onCancel, onSave }) {
       <div className="stack" style={{ alignItems: 'center' }}>
         <div
           style={{
-            width: OUTPUT_SIZE, height: OUTPUT_SIZE, borderRadius: '50%', overflow: 'hidden',
+            width: OUTPUT_SIZE, height: OUTPUT_SIZE, borderRadius: shape === 'square' ? 'var(--radius-md)' : '50%', overflow: 'hidden',
             border: '2px solid var(--gray-300)', cursor: ready ? 'grab' : 'default', touchAction: 'none',
-            background: 'var(--gray-100)',
+            background: shape === 'square'
+              ? 'repeating-conic-gradient(var(--gray-200) 0% 25%, var(--gray-100) 0% 50%) 50% / 16px 16px'
+              : 'var(--gray-100)',
           }}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -110,7 +122,7 @@ export default function PhotoCropper({ file, onCancel, onSave }) {
           <ZoomIn size={15} color="var(--ink-500)" />
           <input type="range" min={minScale} max={minScale * 3} step="0.01" value={scale} onChange={handleZoom} style={{ flex: 1 }} />
         </div>
-        <p className="field__help">Arrastra la foto para encuadrarla y usa la barra para hacer zoom.</p>
+        <p className="field__help">{helpText}</p>
       </div>
     </Modal>
   )

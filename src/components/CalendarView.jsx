@@ -27,8 +27,10 @@ function isEmptyDay(events) {
 // más ancho sin romper la cuadrícula (cada semana sigue sumando 7 columnas
 // en total). El domingo (última columna) nunca se invade: aunque esté
 // libre, se deja como su propio día — no queremos que un partido de sábado
-// se "fume" el otro día del fin de semana.
-function buildWeekCells(week, eventsMap) {
+// se "fume" el otro día del fin de semana. Este ensanchado (y el resto del
+// "modo grande") solo se aplica a la semana activa: las demás semanas no se
+// tocan, para que solo destaque de verdad la semana en curso.
+function buildWeekCells(week, eventsMap, allowWiden) {
   const cells = []
   for (let i = 0; i < week.length; i++) {
     const date = week[i]
@@ -37,7 +39,7 @@ function buildWeekCells(week, eventsMap) {
     const isMatchDay = dayEvents.matches.length > 0
     const next = week[i + 1]
     const nextIsSunday = i + 1 === 6
-    if (isMatchDay && next && !nextIsSunday && isEmptyDay(eventsMap[toISODate(next)])) {
+    if (allowWiden && isMatchDay && next && !nextIsSunday && isEmptyDay(eventsMap[toISODate(next)])) {
       cells.push({ date, iso, dayEvents, span: 2 })
       i++
       continue
@@ -62,8 +64,8 @@ export default function CalendarView({ onGoToRival }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const eventsMap = useMemo(() => getEventsInRange(rangeStart, rangeEnd), [rangeStart, rangeEnd, refreshKey])
   const dayCells = useMemo(
-    () => weeks.flatMap((week, weekIdx) => buildWeekCells(week, eventsMap).map((cell) => ({ ...cell, weekIdx }))),
-    [weeks, eventsMap],
+    () => weeks.flatMap((week, weekIdx) => buildWeekCells(week, eventsMap, weekIdx === currentWeekIndex).map((cell) => ({ ...cell, weekIdx }))),
+    [weeks, eventsMap, currentWeekIndex],
   )
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const opponents = useMemo(() => getOpponents(), [refreshKey])
