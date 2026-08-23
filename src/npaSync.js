@@ -35,6 +35,22 @@ export function isNpaExport(data) {
   return Boolean(data && data.formato === 'npa-stats-copia' && data.datos)
 }
 
+// Export ligero de un solo partido (botón "Descargar datos (JSON)" en el
+// informe de NPA Stats) — misma idea que la copia de seguridad completa,
+// pero sin plantillas/escudos, pensado para subir partido a partido sin
+// tener que generar la copia de seguridad entera cada vez.
+export function isNpaMatchExport(data) {
+  return Boolean(data && data.formato === 'npa-stats-partido' && data.partido)
+}
+
+const DIACRITICS_RE = new RegExp('[̀-ͯ]', 'g')
+
+function slug(s) {
+  return (s || '')
+    .toString().toLowerCase().normalize('NFD').replace(DIACRITICS_RE, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+}
+
 export async function syncNpaExport(data) {
   const datos = data.datos || {}
   const teams = JSON.parse(datos.teams || '[]')
@@ -123,12 +139,19 @@ export async function syncNpaExport(data) {
     }
   })
   const { added: matchesAdded, updated: matchesUpdated } = upsertPartidosNpa(parsedMatches)
+  const rest = await applyParsedMatches(parsedMatches, players)
 
-  // Enlazar cada partido de NPA Stats con su partido del Calendario (mismo
-  // día + mismo equipo, deducido del propio export): si ya existe (p. ej. la
-  // jornada de liga sembrada), se le adjunta el resultado y el npaMatchId; si
-  // no existe (un amistoso que no habías programado), se crea directamente
-  // en el calendario, ya clasificado, para que aparezca al pulsar ese día.
+  return { playersAdded, playersUpdated, matchesAdded, matchesUpdated, ...rest }
+}
+
+// Compartido entre la copia de seguridad completa y el export de un solo
+// partido: enlaza cada partido de NPA Stats con su partido del Calendario
+// (mismo día + mismo equipo, deducido del propio export) y rellena la
+// Asistencia de esa fecha. Si ya existe en el Calendario (p. ej. la jornada
+// de liga sembrada), se le adjunta el resultado y el npaMatchId; si no
+// existe (un amistoso que no habías programado), se crea directamente, ya
+// clasificado, para que aparezca al pulsar ese día.
+async function applyParsedMatches(parsedMatches, players) {
   let calendarMatchesLinked = 0
   let calendarMatchesCreated = 0
   let reportsSynced = 0
@@ -195,5 +218,46 @@ export async function syncNpaExport(data) {
     }
   }
 
-  return { playersAdded, playersUpdated, matchesAdded, matchesUpdated, calendarMatchesLinked, calendarMatchesCreated, reportsSynced, attendanceMarked }
+  return { calendarMatchesLinked, calendarMatchesCreated, reportsSynced, attendanceMarked }
+}
+
+// Export ligero de un solo partido: no trae plantillas ni escudos, así que
+// solo casa jugadores por nombre contra la plantilla ya existente en la app
+// (nunca crea jugadores nuevos desde aquí, al no tener dorsal/posición
+// fiables) y avisa de los nombres que no ha podido casar, para que Pablo
+// sepa que a esos habrá que darles minutos/goles a mano.
+export async function syncNpaMatchExport(data) {
+  const equipo = data.equipo || ''
+  const m = data.partido
+  const players = getPlayers()
+
+  const pm = {
+    id: `manual-${slug(equipo)}__${m.date}`,
+    equipo,
+    date: m.date,
+    rivalName: m.rivalName,
+    teamGoals: m.teamGoals,
+    rivalScore: m.rivalScore,
+    occFor: m.occFor || 0,
+    occAgainst: m.occAgainst || 0,
+    halfLength: m.halfLength,
+    venue: m.venue,
+    startTime: m.startTime,
+    players: m.players || [],
+    goalEvents: m.goalEvents || [],
+    convocados: m.convocados || null,
+    reportHtml: null,
+    reportGeneratedAt: m.reportGeneratedAt || null,
+  }
+
+  const unmatchedPlayers = [...new Set(
+    (pm.players || [])
+      .map((p) => (p.name || '').trim())
+      .filter((name) => name && !matchPlayerByName(players, name)),
+  )]
+
+  const { added: matchesAdded, updated: matchesUpdated } = upsertPartidosNpa([pm])
+  const rest = await applyParsedMatches([pm], players)
+
+  return { playersAdded: 0, playersUpdated: 0, matchesAdded, matchesUpdated, ...rest, unmatchedPlayers }
 }

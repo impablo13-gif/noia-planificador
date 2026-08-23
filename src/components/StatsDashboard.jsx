@@ -54,7 +54,7 @@ export default function StatsDashboard({ matches, players }) {
       <div className="empty-state">
         <PieChart size={36} />
         <h3>Todavía no hay partidos importados</h3>
-        <p>Pulsa "Actualizar desde NPA Stats" y selecciona el último export para traer los datos de los partidos.</p>
+        <p>Pulsa "Subir informe (NPA Stats)" y selecciona el archivo para traer los datos de los partidos.</p>
       </div>
     )
   }

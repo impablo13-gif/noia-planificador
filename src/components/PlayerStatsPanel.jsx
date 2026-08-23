@@ -29,7 +29,7 @@ export default function PlayerStatsPanel({ nombre }) {
       <div className="empty-state">
         <Target size={32} />
         <h3>Sin datos de NPA Stats todavía</h3>
-        <p>En cuanto sincronices partidos con "Actualizar desde NPA Stats" en la pestaña Estadísticas, aquí aparecerán las estadísticas individuales de {nombre}.</p>
+        <p>En cuanto subas un informe con "Subir informe (NPA Stats)" en la pestaña Estadísticas, aquí aparecerán las estadísticas individuales de {nombre}.</p>
       </div>
     )
   }
