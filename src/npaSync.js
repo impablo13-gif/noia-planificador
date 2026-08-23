@@ -9,7 +9,9 @@ import {
   getPlayers, savePlayers, uid, saveFile,
   getClubCrestFileId, setClubCrestFileId, upsertPartidosNpa,
   getMatches, addMatch, updateMatch,
+  getAsistenciaForDate, setAsistenciaForDate,
 } from './db.js'
+import { matchPlayerByName } from './statsEngine.js'
 
 const NPA_POSICION_MAP = { POR: 'Portero', CIE: 'Cierre', ALA: 'Ala', PIV: 'Pívot' }
 
@@ -115,6 +117,7 @@ export async function syncNpaExport(data) {
       startTime: m.startTime,
       players: m.players || [],
       goalEvents: m.goalEvents || [],
+      convocados: m.convocados || null,
       reportHtml: m.reportHtml || null,
       reportGeneratedAt: m.reportGeneratedAt || null,
     }
@@ -129,10 +132,33 @@ export async function syncNpaExport(data) {
   let calendarMatchesLinked = 0
   let calendarMatchesCreated = 0
   let reportsSynced = 0
+  let attendanceMarked = 0
   const calendarMatches = getMatches()
   for (const pm of parsedMatches) {
     const dayISO = pm.date.slice(0, 10)
     const resultText = `Noia ${pm.teamGoals} - ${pm.rivalScore} ${pm.rivalName}`
+
+    // Asistencia: se rellena solo con quien apareció en ese partido —
+    // convocatoria si Pablo la hizo en NPA Stats (cuenta también al que se
+    // quedó en el banquillo), o quien sumó minutos si no hay convocatoria
+    // guardada. Nunca pisa un estado ya puesto a mano (p. ej. una lesión).
+    const attendees = pm.convocados && pm.convocados.length
+      ? pm.convocados
+      : (pm.players || []).filter((p) => (p.seconds || 0) > 0)
+    if (attendees.length) {
+      const existingAsist = getAsistenciaForDate(dayISO)
+      const estados = { ...(existingAsist?.estados || {}) }
+      let changed = false
+      attendees.forEach((a) => {
+        const player = matchPlayerByName(players, a.name)
+        if (player && !estados[player.id]) {
+          estados[player.id] = 'presente'
+          changed = true
+          attendanceMarked++
+        }
+      })
+      if (changed) setAsistenciaForDate(dayISO, estados)
+    }
     const existingCal = calendarMatches.find(
       (cm) => cm.date === dayISO && (cm.equipo === pm.equipo || !cm.equipo) && (!cm.npaMatchId || cm.npaMatchId === pm.id),
     )
@@ -169,5 +195,5 @@ export async function syncNpaExport(data) {
     }
   }
 
-  return { playersAdded, playersUpdated, matchesAdded, matchesUpdated, calendarMatchesLinked, calendarMatchesCreated, reportsSynced }
+  return { playersAdded, playersUpdated, matchesAdded, matchesUpdated, calendarMatchesLinked, calendarMatchesCreated, reportsSynced, attendanceMarked }
 }

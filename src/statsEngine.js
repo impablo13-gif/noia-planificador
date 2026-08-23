@@ -4,12 +4,17 @@
 // NPA Stats ya registra durante el partido — aquí solo se agrega y visualiza.
 
 export function summarize(matches) {
-  const s = { partidos: matches.length, goles: 0, encajados: 0, shotsOn: 0, shotsOff: 0, occFor: 0, occAgainst: 0 }
+  const s = { partidos: matches.length, goles: 0, encajados: 0, shotsOn: 0, shotsOff: 0, occFor: 0, occAgainst: 0, victorias: 0, empates: 0, derrotas: 0 }
   matches.forEach((m) => {
-    s.goles += m.teamGoals || 0
-    s.encajados += m.rivalScore || 0
+    const gf = m.teamGoals || 0
+    const gc = m.rivalScore || 0
+    s.goles += gf
+    s.encajados += gc
     s.occFor += m.occFor || 0
     s.occAgainst += m.occAgainst || 0
+    if (gf > gc) s.victorias++
+    else if (gf < gc) s.derrotas++
+    else s.empates++
     ;(m.players || []).forEach((p) => {
       s.shotsOn += p.shotsOn || 0
       s.shotsOff += p.shotsOff || 0

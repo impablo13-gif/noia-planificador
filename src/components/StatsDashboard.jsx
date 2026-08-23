@@ -1,4 +1,4 @@
-import { Goal, ShieldAlert, Users2, PieChart } from 'lucide-react'
+import { Goal, ShieldAlert, Users2, PieChart, Trophy } from 'lucide-react'
 import { summarize, buildMatchRows, computeQuintetos, computeFases, matchPlayerByName } from '../statsEngine.js'
 import PlayerAvatar from './PlayerAvatar.jsx'
 
@@ -59,35 +59,39 @@ export default function StatsDashboard({ matches, players }) {
     )
   }
 
+  const diff = stats.goles - stats.encajados
+
   return (
     <>
-      <div className="stat-tile-grid">
-        <div className="stat-tile">
-          <div className="stat-tile__value">{stats.partidos}</div>
-          <div className="stat-tile__label">Partidos</div>
+      <div className="card hero-card" style={{ padding: 22, marginBottom: 16 }}>
+        <div className="row" style={{ gap: 8, marginBottom: 16 }}>
+          <Trophy size={17} />
+          <h4 style={{ color: '#fff', margin: 0 }}>Balance de la temporada</h4>
         </div>
-        <div className="stat-tile">
-          <div className="stat-tile__value">{stats.goles}</div>
-          <div className="stat-tile__label">Goles a favor</div>
-        </div>
-        <div className="stat-tile">
-          <div className="stat-tile__value is-accent">{stats.encajados}</div>
-          <div className="stat-tile__label">Goles en contra</div>
-        </div>
-        <div className="stat-tile">
-          <div className="stat-tile__value">{stats.goles - stats.encajados > 0 ? '+' : ''}{stats.goles - stats.encajados}</div>
-          <div className="stat-tile__label">Diferencia</div>
-        </div>
-        <div className="stat-tile">
-          <div className="stat-tile__value">{stats.shotsOn}</div>
-          <div className="stat-tile__label">Tiros a puerta</div>
+        <div className="row" style={{ gap: 28, flexWrap: 'wrap' }}>
+          <div>
+            <div className="hero-card__value" style={{ fontSize: 34 }}>{stats.victorias}-{stats.empates}-{stats.derrotas}</div>
+            <div className="hero-card__label">V-E-D en {stats.partidos} partido{stats.partidos === 1 ? '' : 's'}</div>
+          </div>
+          <div>
+            <div className="hero-card__value" style={{ fontSize: 34 }}>{stats.goles}-{stats.encajados}</div>
+            <div className="hero-card__label">Goles a favor - en contra</div>
+          </div>
+          <div>
+            <div className="hero-card__value" style={{ fontSize: 34 }}>{diff > 0 ? '+' : ''}{diff}</div>
+            <div className="hero-card__label">Diferencia de goles</div>
+          </div>
+          <div>
+            <div className="hero-card__value" style={{ fontSize: 34 }}>{stats.shotsOn}</div>
+            <div className="hero-card__label">Tiros a puerta</div>
+          </div>
         </div>
       </div>
 
       <div className="dashboard-grid">
         <div className="card">
           <div className="leaderboard-card__head">
-            <Goal size={16} color="var(--red-600)" />
+            <div className="icon-chip" style={{ '--chip-color': 'var(--red-600)' }}><Goal size={15} /></div>
             <h4>Goles esperados a favor</h4>
           </div>
           {(() => {
@@ -113,7 +117,7 @@ export default function StatsDashboard({ matches, players }) {
 
         <div className="card">
           <div className="leaderboard-card__head">
-            <ShieldAlert size={16} color="var(--blue-600)" />
+            <div className="icon-chip" style={{ '--chip-color': 'var(--blue-600)' }}><ShieldAlert size={15} /></div>
             <h4>Goles esperados en contra</h4>
           </div>
           {(() => {
@@ -139,7 +143,7 @@ export default function StatsDashboard({ matches, players }) {
 
         <div className="card">
           <div className="leaderboard-card__head">
-            <Users2 size={16} color="var(--red-600)" />
+            <div className="icon-chip" style={{ '--chip-color': 'var(--red-600)' }}><Users2 size={15} /></div>
             <h4>Quintetos que más anotan</h4>
           </div>
           {quintetos.aFavor.length === 0 ? (
@@ -155,7 +159,7 @@ export default function StatsDashboard({ matches, players }) {
 
         <div className="card">
           <div className="leaderboard-card__head">
-            <Users2 size={16} color="var(--blue-600)" />
+            <div className="icon-chip" style={{ '--chip-color': 'var(--blue-600)' }}><Users2 size={15} /></div>
             <h4>Quintetos que más encajan</h4>
           </div>
           {quintetos.enContra.length === 0 ? (
@@ -171,7 +175,7 @@ export default function StatsDashboard({ matches, players }) {
 
         <div className="card">
           <div className="leaderboard-card__head">
-            <PieChart size={16} color="var(--red-600)" />
+            <div className="icon-chip" style={{ '--chip-color': 'var(--red-600)' }}><PieChart size={15} /></div>
             <h4>¿De qué fase vienen nuestros goles?</h4>
           </div>
           {fases.aFavor.length === 0 ? (
@@ -187,7 +191,7 @@ export default function StatsDashboard({ matches, players }) {
 
         <div className="card">
           <div className="leaderboard-card__head">
-            <PieChart size={16} color="var(--blue-600)" />
+            <div className="icon-chip" style={{ '--chip-color': 'var(--blue-600)' }}><PieChart size={15} /></div>
             <h4>¿De qué fase vienen los goles del rival?</h4>
           </div>
           {fases.enContra.length === 0 ? (

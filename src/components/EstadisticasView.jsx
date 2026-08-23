@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { RefreshCw, ChevronRight, ArrowLeft, BarChart3, ListOrdered } from 'lucide-react'
+import { Upload, ChevronRight, ArrowLeft, BarChart3, ListOrdered } from 'lucide-react'
 import { getPartidosNpa, getPlayers, getMatches } from '../db.js'
 import { isNpaExport, syncNpaExport } from '../npaSync.js'
 import { buildMatchRows } from '../statsEngine.js'
@@ -43,7 +43,7 @@ export default function EstadisticasView() {
         if (!isNpaExport(data)) throw new Error('ese archivo no parece un export de NPA Stats')
         setSyncMsg('Sincronizando…')
         const r = await syncNpaExport(data)
-        setSyncMsg(`Actualizado: ${r.matchesAdded} partido${r.matchesAdded === 1 ? '' : 's'} nuevo${r.matchesAdded === 1 ? '' : 's'}, ${r.matchesUpdated} actualizado${r.matchesUpdated === 1 ? '' : 's'} · plantilla ${r.playersAdded} nueva${r.playersAdded === 1 ? '' : 's'}, ${r.playersUpdated} actualizada${r.playersUpdated === 1 ? '' : 's'} · calendario: ${r.calendarMatchesLinked} enlazado${r.calendarMatchesLinked === 1 ? '' : 's'}, ${r.calendarMatchesCreated} creado${r.calendarMatchesCreated === 1 ? '' : 's'}${r.reportsSynced ? ` · ${r.reportsSynced} informe${r.reportsSynced === 1 ? '' : 's'} de partido recogido${r.reportsSynced === 1 ? '' : 's'}` : ''}.`)
+        setSyncMsg(`Actualizado: ${r.matchesAdded} partido${r.matchesAdded === 1 ? '' : 's'} nuevo${r.matchesAdded === 1 ? '' : 's'}, ${r.matchesUpdated} actualizado${r.matchesUpdated === 1 ? '' : 's'} · plantilla ${r.playersAdded} nueva${r.playersAdded === 1 ? '' : 's'}, ${r.playersUpdated} actualizada${r.playersUpdated === 1 ? '' : 's'} · calendario: ${r.calendarMatchesLinked} enlazado${r.calendarMatchesLinked === 1 ? '' : 's'}, ${r.calendarMatchesCreated} creado${r.calendarMatchesCreated === 1 ? '' : 's'}${r.reportsSynced ? ` · ${r.reportsSynced} informe${r.reportsSynced === 1 ? '' : 's'} de partido recogido${r.reportsSynced === 1 ? '' : 's'}` : ''}${r.attendanceMarked ? ` · asistencia marcada a ${r.attendanceMarked} jugador${r.attendanceMarked === 1 ? '' : 'es'}` : ''}.`)
         bump()
       } catch (err) {
         setSyncMsg(`No se pudo actualizar: ${err.message}.`)
@@ -77,11 +77,15 @@ export default function EstadisticasView() {
         <>
           <PageHeader icon={BarChart3} title="Estadísticas" hint={`Datos de partido importados de NPA Stats${activeEquipo ? ` · ${activeEquipo}` : ''}`}>
             <label className="btn btn-primary" style={{ cursor: 'pointer' }}>
-              <RefreshCw size={15} />
-              Actualizar desde NPA Stats
+              <Upload size={15} />
+              Subir informe (NPA Stats)
               <input type="file" accept="application/json,.json" onChange={handleUpdateFile} style={{ display: 'none' }} />
             </label>
           </PageHeader>
+
+          <p className="field__help" style={{ marginTop: -10, marginBottom: 16 }}>
+            Usa el archivo de "Copia de seguridad" de NPA Stats (Crear copia → Crear y compartir copia), no el PDF del informe — el PDF es una imagen y no lleva los datos por dentro. Al subirlo se actualizan Estadísticas, Plantilla, la ficha del partido en el Calendario y la Asistencia de esa fecha.
+          </p>
 
           {syncMsg && <div className="banner banner-info" style={{ marginBottom: 16 }}>{syncMsg}</div>}
 
