@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Flame, HeartPulse, Moon, Zap, Bone, BatteryMedium, Gauge, MapPin, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Flame, HeartPulse, Moon, Zap, Bone, BatteryMedium, Gauge, MapPin, TrendingUp, ChevronLeft, ChevronRight, Filter, X } from 'lucide-react'
 import { getPlayers } from '../db.js'
 import { teamWellnessSnapshot, teamMetricTrend, teamBienestarDates, teamPainBreakdown } from '../bienestarStats.js'
 import { formatDateShort, parseISODate } from '../dateUtils.js'
@@ -100,6 +100,8 @@ export default function BienestarView() {
   const [modo, setModo] = useState('general')
   const [equipoFilter, setEquipoFilter] = useState(null)
   const [selectedFecha, setSelectedFecha] = useState(null)
+  const [excludedIds, setExcludedIds] = useState(() => new Set())
+  const [showPlayerFilter, setShowPlayerFilter] = useState(false)
   const [, setRefreshKey] = useState(0)
   const bump = () => setRefreshKey((k) => k + 1)
 
@@ -108,6 +110,19 @@ export default function BienestarView() {
   const defaultEquipo = equipos.find((eq) => /juvenil/i.test(eq)) || equipos[0] || null
   const activeEquipo = equipoFilter && equipos.includes(equipoFilter) ? equipoFilter : defaultEquipo
   const equipoPlayers = activeEquipo ? players.filter((p) => p.equipo === activeEquipo) : players
+  // Jugadores que sí cuentan para las medias/tendencias — los paneles de
+  // editar RPE/Wellness siguen usando `equipoPlayers` sin filtrar, para
+  // poder seguir corrigiendo o borrando la respuesta de alguien excluido.
+  const statsPlayers = equipoPlayers.filter((p) => !excludedIds.has(p.id))
+
+  function togglePlayerExcluded(id) {
+    setExcludedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   const dates = teamBienestarDates(equipoPlayers)
   // Si la fecha elegida ya no está en este equipo/filtro (o no se ha
@@ -120,7 +135,7 @@ export default function BienestarView() {
   const goPrevDate = () => canPrevDate && setSelectedFecha(dates[dateIndex - 1])
   const goNextDate = () => canNextDate && setSelectedFecha(dates[dateIndex + 1])
 
-  const snap = teamWellnessSnapshot(equipoPlayers, currentFecha)
+  const snap = teamWellnessSnapshot(statsPlayers, currentFecha)
 
   if (dates.length === 0) {
     return (
@@ -142,9 +157,9 @@ export default function BienestarView() {
     )
   }
 
-  const rpeTrend = teamMetricTrend(equipoPlayers, 'rpe')
-  const wellnessTrend = teamMetricTrend(equipoPlayers, 'wellnessScore')
-  const painLatest = teamPainBreakdown(equipoPlayers, { onlyLatest: true, fecha: currentFecha })
+  const rpeTrend = teamMetricTrend(statsPlayers, 'rpe')
+  const wellnessTrend = teamMetricTrend(statsPlayers, 'wellnessScore')
+  const painLatest = teamPainBreakdown(statsPlayers, { onlyLatest: true, fecha: currentFecha })
 
   return (
     <div className="stack">
@@ -163,7 +178,45 @@ export default function BienestarView() {
             ))}
           </div>
         )}
+        <button
+          type="button"
+          className={`chip${excludedIds.size ? ' is-active' : ''}`}
+          onClick={() => setShowPlayerFilter((s) => !s)}
+        >
+          <Filter size={12} style={{ verticalAlign: -1, marginRight: 4 }} />
+          {excludedIds.size ? `${excludedIds.size} fuera de la media` : 'Filtrar jugadores'}
+        </button>
       </div>
+
+      {showPlayerFilter && (
+        <div className="card" style={{ padding: 14 }}>
+          <p className="field__help" style={{ marginTop: 0, marginBottom: 10 }}>
+            Quita a quien quieras dejar fuera de las medias y tendencias de este dashboard — sus respuestas individuales siguen intactas y se pueden seguir editando/borrando como siempre.
+          </p>
+          <div className="chip-group">
+            {equipoPlayers.map((p) => {
+              const excluded = excludedIds.has(p.id)
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  className={`chip${!excluded ? ' is-active' : ''}`}
+                  style={excluded ? { opacity: 0.55, textDecoration: 'line-through' } : undefined}
+                  onClick={() => togglePlayerExcluded(p.id)}
+                >
+                  {p.nombre}
+                </button>
+              )
+            })}
+          </div>
+          {excludedIds.size > 0 && (
+            <button type="button" className="link-btn" style={{ marginTop: 8 }} onClick={() => setExcludedIds(new Set())}>
+              <X size={12} style={{ verticalAlign: -1, marginRight: 4 }} />
+              Quitar filtro ({excludedIds.size})
+            </button>
+          )}
+        </div>
+      )}
 
       {modo === 'general' && (
         <div className="stack">
@@ -214,7 +267,7 @@ export default function BienestarView() {
           <WellnessDayPanel fecha={currentFecha} players={equipoPlayers} title={`Wellness del ${formatDateShort(parseISODate(currentFecha))}`} onChange={bump} />
           <div className="dashboard-grid">
             {WELLNESS_METRICS.map((m) => (
-              <MetricTrendCard key={m.key} metric={m} players={equipoPlayers} />
+              <MetricTrendCard key={m.key} metric={m} players={statsPlayers} />
             ))}
           </div>
           <div className="card">
