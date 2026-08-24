@@ -979,10 +979,24 @@ textarea::placeholder {
   box-shadow: var(--shadow-sm);
 }
 
+/* El nombre completo del rival se intenta mostrar siempre (o su sigla, si
+   el rival la tiene puesta en Rivales) — fuera de la semana activa se
+   limita a 2 líneas para que un nombre muy largo no estire toda la fila
+   del mes; en la semana activa (casilla grande) se ve entero, sin límite
+   de líneas, ver más abajo. */
 .calendar-event__rival {
   line-height: 1.25;
   word-break: break-word;
   font-size: 11.5px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.calendar-day.is-match-day.is-current-week .calendar-event__rival {
+  display: block;
+  overflow: visible;
 }
 
 /* Casilla ensanchada (partido que se ha comido el hueco del día vacío de al
