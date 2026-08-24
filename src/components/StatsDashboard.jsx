@@ -1,4 +1,4 @@
-import { Goal, ShieldAlert, Users2, PieChart, Trophy } from 'lucide-react'
+import { Goal, ShieldAlert, Users2, PieChart, Trophy, Target, Hand } from 'lucide-react'
 import { summarize, buildMatchRows, computeQuintetos, computeFases, matchPlayerByName } from '../statsEngine.js'
 import PlayerAvatar from './PlayerAvatar.jsx'
 
@@ -112,7 +112,7 @@ export default function StatsDashboard({ matches, players }) {
               </div>
             )
           })()}
-          <p className="field__help" style={{ marginTop: 10 }}>Estimado a partir de los tiros a puerta y la conversión real (no es un xG por calidad de tiro).</p>
+          <p className="field__help" style={{ marginTop: 10 }}>Pondera cada tiro a puerta, al palo y fuera con un peso distinto sobre la conversión real de la temporada (no es un xG por calidad/localización real del tiro).</p>
         </div>
 
         <div className="card">
@@ -138,7 +138,42 @@ export default function StatsDashboard({ matches, players }) {
               </div>
             )
           })()}
-          <p className="field__help" style={{ marginTop: 10 }}>Estimado a partir de las ocasiones del rival y la tasa de encaje real.</p>
+          <p className="field__help" style={{ marginTop: 10 }}>A partir de las paradas de nuestros porteros (tiros a puerta que de verdad afrontó la portería: paradas + goles encajados) y la tasa de encaje real.</p>
+        </div>
+
+        <div className="card">
+          <div className="leaderboard-card__head">
+            <div className="icon-chip" style={{ '--chip-color': 'var(--gold-600)' }}><Target size={15} /></div>
+            <h4>Tiros</h4>
+          </div>
+          {(() => {
+            const total = stats.shotsOn + stats.shotsOff + stats.shotsPost
+            const rows2 = [
+              { label: 'A puerta', value: stats.shotsOn, color: 'var(--success-600)' },
+              { label: 'Al palo', value: stats.shotsPost, color: 'var(--warn-600)' },
+              { label: 'Fuera', value: stats.shotsOff, color: 'var(--ink-300)' },
+            ]
+            const max = Math.max(1, ...rows2.map((r) => r.value))
+            return total === 0 ? (
+              <p className="text-muted" style={{ fontSize: 12.5 }}>Sin tiros registrados todavía.</p>
+            ) : (
+              <div className="stack" style={{ gap: 8 }}>
+                {rows2.map((r) => (
+                  <div key={r.label} className="phase-row">
+                    <span className="phase-row__label">{r.label}</span>
+                    <div className="leaderboard-bar-track" style={{ flex: 1 }}>
+                      <div className="leaderboard-bar-fill" style={{ width: `${(r.value / max) * 100}%`, background: r.color }} />
+                    </div>
+                    <span className="phase-row__count">{r.value}</span>
+                  </div>
+                ))}
+              </div>
+            )
+          })()}
+          <div className="row" style={{ gap: 6, marginTop: 12 }}>
+            <Hand size={13} color="var(--blue-600)" />
+            <span style={{ fontSize: 12.5 }}>{stats.saves} parada{stats.saves === 1 ? '' : 's'} de nuestros porteros</span>
+          </div>
         </div>
 
         <div className="card">

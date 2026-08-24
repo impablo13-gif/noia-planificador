@@ -175,7 +175,7 @@ export default function RosterDashboard({ players }) {
         icon={Clock}
         iconColor="var(--warn-600)"
         barColor="linear-gradient(90deg, #a1671b, #d9a94a)"
-        players={players}
+        players={players.filter((p) => p.posicion !== 'Portero')}
         getValue={(p) => Math.round(npaFor(p).seconds / 60)}
         unit="'"
         emptyText="Aún no hay minutos importados de NPA Stats."

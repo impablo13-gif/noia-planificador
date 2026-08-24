@@ -2,17 +2,19 @@ import { useState } from 'react'
 import { Upload, ChevronRight, ArrowLeft, BarChart3, ListOrdered } from 'lucide-react'
 import { getPartidosNpa, getPlayers, getMatches } from '../db.js'
 import { isNpaExport, syncNpaExport, isNpaMatchExport, syncNpaMatchExport } from '../npaSync.js'
-import { buildMatchRows } from '../statsEngine.js'
+import { buildMatchRows, filterByCompetition } from '../statsEngine.js'
 import { formatDateShort, formatDateLong, parseISODate } from '../dateUtils.js'
 import StatsDashboard from './StatsDashboard.jsx'
 import PageHeader from './PageHeader.jsx'
 
 const COMPETITION_ROW_CLASS = { Liga: 'match-row--liga', Amistoso: 'match-row--amistoso', Copa: 'match-row--copa' }
+const COMPETICIONES = ['Liga', 'Amistoso', 'Copa']
 
 export default function EstadisticasView() {
   const [refreshKey, setRefreshKey] = useState(0)
   const [syncMsg, setSyncMsg] = useState('')
   const [equipoFilter, setEquipoFilter] = useState(null)
+  const [competicionFilter, setCompeticionFilter] = useState(null)
   const [openMatchId, setOpenMatchId] = useState(null)
 
   const players = getPlayers()
@@ -24,8 +26,9 @@ export default function EstadisticasView() {
   const equipos = [...new Set(players.map((p) => p.equipo).filter(Boolean))]
   const defaultEquipo = equipos.find((eq) => /juvenil/i.test(eq)) || equipos[0] || null
   const activeEquipo = equipoFilter && equipos.includes(equipoFilter) ? equipoFilter : defaultEquipo
-  const matches = activeEquipo ? allMatches.filter((m) => m.equipo === activeEquipo) : allMatches
+  const equipoMatches = activeEquipo ? allMatches.filter((m) => m.equipo === activeEquipo) : allMatches
   const competitionByNpaId = new Map(getMatches().filter((cm) => cm.npaMatchId).map((cm) => [cm.npaMatchId, cm.competition]))
+  const matches = filterByCompetition(equipoMatches, competitionByNpaId, competicionFilter)
   const openMatch = openMatchId ? matches.find((m) => m.id === openMatchId) : null
 
   function bump() {
@@ -109,15 +112,27 @@ export default function EstadisticasView() {
 
           {syncMsg && <div className="banner banner-info" style={{ marginBottom: 16 }}>{syncMsg}</div>}
 
-          {equipos.length > 1 && (
-            <div className="chip-group" style={{ marginBottom: 16 }}>
-              {equipos.map((eq) => (
-                <button key={eq} type="button" className={`chip${activeEquipo === eq ? ' is-active' : ''}`} onClick={() => setEquipoFilter(eq)}>
-                  {eq}
+          <div className="row" style={{ flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
+            {equipos.length > 1 && (
+              <div className="chip-group">
+                {equipos.map((eq) => (
+                  <button key={eq} type="button" className={`chip${activeEquipo === eq ? ' is-active' : ''}`} onClick={() => setEquipoFilter(eq)}>
+                    {eq}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="chip-group">
+              <button type="button" className={`chip${!competicionFilter ? ' is-active' : ''}`} onClick={() => setCompeticionFilter(null)}>
+                Todas
+              </button>
+              {COMPETICIONES.map((c) => (
+                <button key={c} type="button" className={`chip${competicionFilter === c ? ' is-active' : ''}`} onClick={() => setCompeticionFilter(c)}>
+                  {c}
                 </button>
               ))}
             </div>
-          )}
+          </div>
 
           <StatsDashboard matches={matches} players={players} />
 
