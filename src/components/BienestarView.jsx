@@ -5,6 +5,8 @@ import { teamWellnessSnapshot, teamMetricTrend, teamBienestarDates, teamPainBrea
 import { formatDateShort, parseISODate } from '../dateUtils.js'
 import TrendChart from './TrendChart.jsx'
 import PageHeader from './PageHeader.jsx'
+import SessionRpePanel from './SessionRpePanel.jsx'
+import WellnessDayPanel from './WellnessDayPanel.jsx'
 
 const MODOS = [
   { id: 'general', label: 'General (mezcla)' },
@@ -98,6 +100,8 @@ export default function BienestarView() {
   const [modo, setModo] = useState('general')
   const [equipoFilter, setEquipoFilter] = useState(null)
   const [selectedFecha, setSelectedFecha] = useState(null)
+  const [, setRefreshKey] = useState(0)
+  const bump = () => setRefreshKey((k) => k + 1)
 
   const players = getPlayers()
   const equipos = [...new Set(players.map((p) => p.equipo).filter(Boolean))]
@@ -207,6 +211,7 @@ export default function BienestarView() {
           >
             <HeroStat label="Bienestar general" unit="/5" value={snap.wellnessAvg} />
           </HeroCard>
+          <WellnessDayPanel fecha={currentFecha} players={equipoPlayers} title={`Wellness del ${formatDateShort(parseISODate(currentFecha))}`} onChange={bump} />
           <div className="dashboard-grid">
             {WELLNESS_METRICS.map((m) => (
               <MetricTrendCard key={m.key} metric={m} players={equipoPlayers} />
@@ -253,6 +258,7 @@ export default function BienestarView() {
           >
             <HeroStat label="RPE medio" unit="/10" value={snap.rpeAvg} />
           </HeroCard>
+          <SessionRpePanel fecha={currentFecha} players={equipoPlayers} title={`RPE del ${formatDateShort(parseISODate(currentFecha))}`} onChange={bump} />
           <div className="card">
             <div className="row" style={{ gap: 9, marginBottom: 12 }}>
               <div className="icon-chip" style={{ '--chip-color': 'var(--red-600)' }}><Flame size={15} /></div>

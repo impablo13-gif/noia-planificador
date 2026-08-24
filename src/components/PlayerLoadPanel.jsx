@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Moon, Zap, Bone, BatteryMedium, Gauge, HeartPulse, Flame, AlertTriangle } from 'lucide-react'
-import { setPlayerRpe, playerBienestarHistory } from '../bienestarStats.js'
+import { Moon, Zap, Bone, BatteryMedium, Gauge, HeartPulse, Flame, AlertTriangle, Trash2 } from 'lucide-react'
+import { setPlayerRpe, playerBienestarHistory, removePlayerBienestarEntry } from '../bienestarStats.js'
 import { formatDateLong, parseISODate } from '../dateUtils.js'
 
 // Barras verticales que crecen hacia arriba desde la base, una por respuesta,
@@ -70,6 +70,11 @@ export default function PlayerLoadPanel({ playerId, cargaFisica, onChange }) {
       if (exists) return prev.map((e) => (e.fecha === fecha ? { ...e, rpe: n } : e))
       return [...prev, { fecha, rpe: n }].sort((a, b) => (a.fecha < b.fecha ? -1 : 1))
     })
+  }
+
+  function handleRemoveEntry(fecha) {
+    removePlayerBienestarEntry(playerId, fecha)
+    setHistory((prev) => prev.filter((e) => e.fecha !== fecha))
   }
 
   if (history.length === 0) {
@@ -154,16 +159,30 @@ export default function PlayerLoadPanel({ playerId, cargaFisica, onChange }) {
         {pickedDate && (
           <div className="row spread" style={{ marginTop: 8, background: 'rgba(255,255,255,0.14)', borderRadius: 7, padding: '8px 12px' }}>
             <span style={{ fontSize: 12.5 }}>{formatDateLong(parseISODate(pickedDate))}</span>
-            <input
-              type="number"
-              min="0"
-              max="10"
-              step="0.5"
-              value={pickedEntry?.rpe ?? ''}
-              placeholder="—"
-              onChange={(ev) => handleRpeEdit(pickedDate, ev.target.value)}
-              style={{ width: 56, padding: '3px 6px', fontSize: 13, borderRadius: 5, border: 'none', background: '#fff', color: 'var(--ink-900)' }}
-            />
+            <div className="row" style={{ gap: 6 }}>
+              <input
+                type="number"
+                min="0"
+                max="10"
+                step="0.5"
+                value={pickedEntry?.rpe ?? ''}
+                placeholder="—"
+                onChange={(ev) => handleRpeEdit(pickedDate, ev.target.value)}
+                style={{ width: 56, padding: '3px 6px', fontSize: 13, borderRadius: 5, border: 'none', background: '#fff', color: 'var(--ink-900)' }}
+              />
+              {pickedEntry && (
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-icon btn-sm"
+                  style={{ color: '#fff' }}
+                  onClick={() => handleRemoveEntry(pickedDate)}
+                  title="Borrar la respuesta completa de este día (RPE y Wellness)"
+                  aria-label="Borrar respuesta"
+                >
+                  <Trash2 size={14} />
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>

@@ -1,7 +1,7 @@
 // Cálculos derivados de las respuestas de bienestar/RPE, compartidos entre la
 // ficha de jugador, los modales de entreno/partido y el dashboard de Plantilla.
 
-import { getBienestar, upsertBienestar } from './db.js'
+import { getBienestar, upsertBienestar, removeBienestarEntry } from './db.js'
 import { getEventsInRange } from './eventsEngine.js'
 import { parseISODate, toISODate, addDays } from './dateUtils.js'
 
@@ -85,15 +85,36 @@ export function rpeForDate(fecha) {
   return { avg: avg(entries.map((e) => e.rpe)), count: entries.length, entries }
 }
 
+// Igual que `rpeForDate` pero para la puntuación compuesta de Wellness — se
+// usa para editar/borrar las respuestas de un día concreto en el dashboard.
+export function wellnessForDate(fecha) {
+  if (!fecha) return { avg: null, count: 0, entries: [] }
+  const entries = getBienestar().filter((e) => e.fecha === fecha && wellnessScore(e) != null)
+  return { avg: avg(entries.map((e) => wellnessScore(e))), count: entries.length, entries }
+}
+
 // Crea o corrige el RPE de un jugador en una fecha concreta, conservando el
 // resto de campos de esa respuesta (sueño, estrés…) si ya existía. Permite
 // que cualquier valor de RPE mostrado en la app se pueda editar a mano.
 export function setPlayerRpe(playerId, fecha, rpe) {
+  return setPlayerBienestarField(playerId, fecha, 'rpe', rpe)
+}
+
+// Igual que `setPlayerRpe` pero para cualquier campo de la respuesta (los
+// del Wellness: estrés, sueño, dolor muscular, energía, fatiga, condición
+// general) — conserva el resto de campos ya guardados.
+export function setPlayerBienestarField(playerId, fecha, field, value) {
   const id = `${playerId}__${fecha}`
   const existing = getBienestar().find((e) => e.id === id)
-  const entry = { ...(existing || { id, playerId, fecha }), rpe }
+  const entry = { ...(existing || { id, playerId, fecha }), [field]: value }
   upsertBienestar([entry])
   return entry
+}
+
+// Borra la respuesta completa (RPE + Wellness) de un jugador en una fecha —
+// para quitar una entrada duplicada, de prueba, o en el día equivocado.
+export function removePlayerBienestarEntry(playerId, fecha) {
+  return removeBienestarEntry(`${playerId}__${fecha}`)
 }
 
 // Historial completo de un jugador, ya limitado a días reales de calendario

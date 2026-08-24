@@ -315,6 +315,15 @@ export function upsertBienestar(nuevos) {
   return { added, updated }
 }
 
+// Borra por completo la respuesta de un jugador en una fecha (RPE y
+// Wellness a la vez, al ser la misma entrada) — para quitar una respuesta
+// duplicada, de prueba, o puesta en el día equivocado.
+export function removeBienestarEntry(id) {
+  const next = getBienestar().filter((e) => e.id !== id)
+  saveBienestar(next)
+  return next
+}
+
 // Alias nombre-del-cuestionario → jugador: una vez que un nombre se empareja
 // (automáticamente o a mano, tras confirmarlo Pablo), se recuerda para
 // siempre, así las siguientes sincronizaciones no tienen que volver a
