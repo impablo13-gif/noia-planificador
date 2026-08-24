@@ -133,7 +133,10 @@ export default function CalendarView({ onGoToRival }) {
                   style={span === 2 ? { gridColumn: 'span 2' } : undefined}
                   onClick={() => setSelectedDate(date)}
                 >
-                  <div className="calendar-day__num">{date.getDate()}</div>
+                  <div className="calendar-day__head">
+                    <span className="calendar-day__dow">{dowLabels()[(date.getDay() + 6) % 7]}</span>
+                    <span className="calendar-day__num">{date.getDate()}</span>
+                  </div>
                   <div className="calendar-day__events">
                     {dayEvents.trainings.map((t, i) => (
                       <span key={`t${i}`} className={`calendar-event is-training${t.cancelled ? ' is-cancelled' : ''}`}>

@@ -1004,6 +1004,19 @@ textarea::placeholder {
   font-size: 12px;
 }
 
+/* En escritorio esto no pinta nada por sí mismo (display:contents lo saca
+   del árbol de caja) — el número de día sigue siendo un hijo flex directo
+   de .calendar-day, exactamente como antes. Solo se convierte en una fila
+   propia (día de la semana + número) en el layout de lista de móvil, más
+   abajo. */
+.calendar-day__head {
+  display: contents;
+}
+
+.calendar-day__dow {
+  display: none;
+}
+
 .calendar-day__num {
   font-size: 12.5px;
   font-weight: 600;
@@ -1064,6 +1077,95 @@ textarea::placeholder {
   }
   .calendar-event {
     font-size: 9.5px;
+  }
+}
+
+/* Por debajo de esto, una cuadrícula de 7 columnas deja una casilla por día
+   demasiado estrecha para leer ningún nombre entero (menos de 40px, letra a
+   letra) — se cambia a una lista vertical de un día por fila, a todo el
+   ancho, con el día de la semana + número a la izquierda y los eventos del
+   día ocupando el resto. Los días de fuera del mes se ocultan para que la
+   lista sea solo los días reales, en orden. */
+@media (max-width: 600px) {
+  .calendar-grid {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .calendar-grid__dow {
+    display: none;
+  }
+
+  .calendar-day {
+    flex-direction: row;
+    align-items: center;
+    min-height: 0;
+    padding: 8px 10px;
+    gap: 10px;
+  }
+
+  .calendar-day.is-outside {
+    display: none;
+  }
+
+  .calendar-day__head {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 32px;
+  }
+
+  .calendar-day__dow {
+    display: block;
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--ink-500);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+
+  .calendar-day__events {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .calendar-event.calendar-event--match {
+    flex-direction: row;
+    align-items: center;
+    text-align: left;
+    gap: 8px;
+    padding: 2px 5px;
+  }
+
+  /* La semana activa y el día de partido ya no necesitan agrandar la
+     casilla en una lista a todo el ancho — cada fila cabe entera de por
+     sí; el color de partido (rojo) sigue marcándolo igual. */
+  .calendar-day.is-current-week,
+  .calendar-day.is-match-day.is-current-week {
+    min-height: 0;
+    padding: 8px 10px;
+    box-shadow: none;
+  }
+
+  .calendar-day.is-current-week .calendar-day__num,
+  .calendar-day.is-match-day.is-current-week .calendar-day__num {
+    font-size: 12.5px;
+  }
+
+  .calendar-day.is-current-week .calendar-event,
+  .calendar-day.is-match-day.is-current-week .calendar-event {
+    font-size: 11px;
+    padding: 2px 5px;
+  }
+
+  .calendar-day.is-match-day.is-current-week .calendar-event--match {
+    flex-direction: row;
+    align-items: center;
+    text-align: left;
+    gap: 8px;
+    padding: 2px 5px;
   }
 }
 
