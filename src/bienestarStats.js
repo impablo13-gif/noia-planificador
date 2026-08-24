@@ -26,6 +26,26 @@ export function isScheduledSessionDay(fecha) {
   return hasSession(map[toISODate(prev)])
 }
 
+// Si una fecha no tiene entreno ni partido ese mismo día, busca hacia atrás
+// (hasta `maxLookbackDays`) la sesión real más cercana — un finde sin
+// entreno, unas vacaciones, o simplemente que a alguien se le olvidó
+// responder el mismo día no deben perder la respuesta: corresponde a la
+// última sesión de verdad que hubo antes de esa fecha. Devuelve null si no
+// encuentra ninguna sesión en ese margen (respuesta realmente huérfana).
+export function nearestSessionDate(fecha, { maxLookbackDays = 30 } = {}) {
+  if (!fecha) return null
+  const end = parseISODate(fecha)
+  const start = addDays(end, -maxLookbackDays)
+  const map = getEventsInRange(start, end)
+  let d = end
+  for (let i = 0; i <= maxLookbackDays; i++) {
+    const iso = toISODate(d)
+    if (hasSession(map[iso])) return iso
+    d = addDays(d, -1)
+  }
+  return null
+}
+
 // Todas las respuestas de bienestar que caen en un día real del calendario —
 // el resto de funciones de este módulo parten de aquí, no de `getBienestar()`
 // directamente, para que "el último día" signifique siempre lo mismo en toda
@@ -103,17 +123,19 @@ export function playerAverageRpe(playerId) {
   return { avg: avg(entries.map((e) => e.rpe)), count: entries.length }
 }
 
-// Foto del equipo (recibe la plantilla ya filtrada por equipo) en el último
-// día real (entreno o partido) con respuestas: RPE medio, bienestar general
-// medio, y cuántos de la plantilla han respondido.
-export function teamWellnessSnapshot(players) {
+// Foto del equipo (recibe la plantilla ya filtrada por equipo) en un día
+// real (entreno o partido) con respuestas: RPE medio, bienestar general
+// medio, y cuántos de la plantilla han respondido. Sin `fecha`, usa el
+// último día con datos — se le puede pasar una fecha concreta (de
+// `teamBienestarDates`) para navegar a un día anterior.
+export function teamWellnessSnapshot(players, fecha) {
   const playerIds = new Set(players.map((p) => p.id))
   const all = scheduledBienestar().filter((e) => playerIds.has(e.playerId))
-  const lastFecha = all.reduce((max, e) => (e.fecha > max ? e.fecha : max), '')
-  if (!lastFecha) return { fecha: null, rpeAvg: null, wellnessAvg: null, responded: 0, total: players.length }
-  const todays = all.filter((e) => e.fecha === lastFecha)
+  const targetFecha = fecha || all.reduce((max, e) => (e.fecha > max ? e.fecha : max), '')
+  if (!targetFecha) return { fecha: null, rpeAvg: null, wellnessAvg: null, responded: 0, total: players.length }
+  const todays = all.filter((e) => e.fecha === targetFecha)
   return {
-    fecha: lastFecha,
+    fecha: targetFecha,
     rpeAvg: avg(todays.map((e) => e.rpe)),
     wellnessAvg: avg(todays.map((e) => wellnessScore(e))),
     responded: todays.length,
@@ -151,12 +173,12 @@ export function teamBienestarDates(players) {
 
 // Reparto de zonas de dolor reportadas (excluyendo "Sin dolor"), de más a
 // menos frecuente — para detectar patrones de sobrecarga en el grupo.
-export function teamPainBreakdown(players, { onlyLatest = false } = {}) {
+export function teamPainBreakdown(players, { onlyLatest = false, fecha } = {}) {
   const playerIds = new Set(players.map((p) => p.id))
   let entries = scheduledBienestar().filter((e) => playerIds.has(e.playerId) && e.dolorZona && !/sin dolor/i.test(e.dolorZona))
   if (onlyLatest) {
-    const lastFecha = entries.reduce((max, e) => (e.fecha > max ? e.fecha : max), '')
-    entries = entries.filter((e) => e.fecha === lastFecha)
+    const targetFecha = fecha || entries.reduce((max, e) => (e.fecha > max ? e.fecha : max), '')
+    entries = entries.filter((e) => e.fecha === targetFecha)
   }
   const counts = {}
   entries.forEach((e) => { counts[e.dolorZona] = (counts[e.dolorZona] || 0) + 1 })

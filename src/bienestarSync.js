@@ -23,6 +23,12 @@
 // tecleo tipo "0026"), se cae de vuelta a la fecha de "Marca temporal" (el
 // timestamp automático de Google Forms, que nunca falla).
 //
+// Esa fecha "nominal" todavía se corrige una vez más: si ese día concreto no
+// hay entreno ni partido en el calendario (finde, vacaciones, alguien que
+// responde con retraso…), la respuesta se atribuye a la sesión real más
+// cercana hacia atrás (`nearestSessionDate`, en bienestarStats.js) en vez de
+// quedar huérfana en un día suelto sin actividad.
+//
 // El nombre que cada jugador escribe en el formulario casi nunca coincide
 // tal cual con el de la plantilla (motes, solo el nombre de pila, apellidos
 // en otro orden…). `matchPlayer` combina tres niveles automáticos y, si
@@ -44,6 +50,7 @@
 
 import { getPlayers, getBienestar, upsertBienestar, getBienestarAliases, setBienestarAlias, getAsistenciaForDate } from './db.js'
 import { parseISODate, addDays, toISODate } from './dateUtils.js'
+import { nearestSessionDate } from './bienestarStats.js'
 
 function toISOFromTimestamp(ts) {
   const datePart = (ts || '').trim().split(' ')[0]
@@ -215,8 +222,12 @@ function syncBienestarRows(rows, colFor) {
     const col = typeof colFor === 'function' ? colFor(r) : colFor
     const nombreSheet = (r[col.nombre] || '').trim()
     if (!nombreSheet) continue
-    const fecha = resolveFecha(r[col.ts], r[col.fechaHoy], col.rpe !== undefined)
-    if (!fecha) continue
+    const nominalFecha = resolveFecha(r[col.ts], r[col.fechaHoy], col.rpe !== undefined)
+    if (!nominalFecha) continue
+    // Si esa fecha no tiene entreno ni partido (finde, vacaciones, respuesta
+    // tardía…), la respuesta corresponde a la sesión real más cercana hacia
+    // atrás, no al día suelto que puso el jugador.
+    const fecha = nearestSessionDate(nominalFecha) || nominalFecha
     const player = matchPlayer(players, nombreSheet, aliases)
     if (!player) { unmatched.add(nombreSheet); continue }
     // Refuerza el alias con cada acierto (venga del nivel que venga) para

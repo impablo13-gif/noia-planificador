@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Flame, HeartPulse, Moon, Zap, Bone, BatteryMedium, Gauge, MapPin, TrendingUp } from 'lucide-react'
+import { Flame, HeartPulse, Moon, Zap, Bone, BatteryMedium, Gauge, MapPin, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react'
 import { getPlayers } from '../db.js'
 import { teamWellnessSnapshot, teamMetricTrend, teamBienestarDates, teamPainBreakdown } from '../bienestarStats.js'
 import { formatDateShort, parseISODate } from '../dateUtils.js'
@@ -34,7 +34,7 @@ function HeroStat({ label, value, unit, sub }) {
   )
 }
 
-function HeroCard({ icon: Icon, title, dateLabel, children }) {
+function HeroCard({ icon: Icon, title, dateLabel, onPrevDate, onNextDate, canPrevDate, canNextDate, children }) {
   return (
     <div className="card hero-card">
       <div className="row spread" style={{ marginBottom: 16, position: 'relative' }}>
@@ -42,7 +42,31 @@ function HeroCard({ icon: Icon, title, dateLabel, children }) {
           <Icon size={18} />
           <h4 style={{ margin: 0 }}>{title}</h4>
         </div>
-        {dateLabel && <span className="hero-card__label" style={{ fontSize: 11.5 }}>{dateLabel}</span>}
+        {dateLabel && (
+          <div className="row" style={{ gap: 4 }}>
+            <button
+              type="button"
+              className="btn btn-ghost btn-icon btn-sm"
+              style={{ color: '#fff', opacity: canPrevDate ? 1 : 0.35 }}
+              onClick={onPrevDate}
+              disabled={!canPrevDate}
+              aria-label="Día anterior"
+            >
+              <ChevronLeft size={15} />
+            </button>
+            <span className="hero-card__label" style={{ fontSize: 11.5, minWidth: 150, textAlign: 'center' }}>{dateLabel}</span>
+            <button
+              type="button"
+              className="btn btn-ghost btn-icon btn-sm"
+              style={{ color: '#fff', opacity: canNextDate ? 1 : 0.35 }}
+              onClick={onNextDate}
+              disabled={!canNextDate}
+              aria-label="Día siguiente"
+            >
+              <ChevronRight size={15} />
+            </button>
+          </div>
+        )}
       </div>
       <div className="row" style={{ gap: 32, position: 'relative' }}>{children}</div>
     </div>
@@ -73,6 +97,7 @@ function MetricTrendCard({ metric, players }) {
 export default function BienestarView() {
   const [modo, setModo] = useState('general')
   const [equipoFilter, setEquipoFilter] = useState(null)
+  const [selectedFecha, setSelectedFecha] = useState(null)
 
   const players = getPlayers()
   const equipos = [...new Set(players.map((p) => p.equipo).filter(Boolean))]
@@ -80,8 +105,18 @@ export default function BienestarView() {
   const activeEquipo = equipoFilter && equipos.includes(equipoFilter) ? equipoFilter : defaultEquipo
   const equipoPlayers = activeEquipo ? players.filter((p) => p.equipo === activeEquipo) : players
 
-  const snap = teamWellnessSnapshot(equipoPlayers)
   const dates = teamBienestarDates(equipoPlayers)
+  // Si la fecha elegida ya no está en este equipo/filtro (o no se ha
+  // elegido ninguna), cae siempre al último día con datos.
+  let dateIndex = selectedFecha ? dates.indexOf(selectedFecha) : -1
+  if (dateIndex === -1) dateIndex = dates.length - 1
+  const currentFecha = dates[dateIndex] ?? null
+  const canPrevDate = dateIndex > 0
+  const canNextDate = dateIndex >= 0 && dateIndex < dates.length - 1
+  const goPrevDate = () => canPrevDate && setSelectedFecha(dates[dateIndex - 1])
+  const goNextDate = () => canNextDate && setSelectedFecha(dates[dateIndex + 1])
+
+  const snap = teamWellnessSnapshot(equipoPlayers, currentFecha)
 
   if (dates.length === 0) {
     return (
@@ -105,7 +140,7 @@ export default function BienestarView() {
 
   const rpeTrend = teamMetricTrend(equipoPlayers, 'rpe')
   const wellnessTrend = teamMetricTrend(equipoPlayers, 'wellnessScore')
-  const painLatest = teamPainBreakdown(equipoPlayers, { onlyLatest: true })
+  const painLatest = teamPainBreakdown(equipoPlayers, { onlyLatest: true, fecha: currentFecha })
 
   return (
     <div className="stack">
@@ -128,7 +163,15 @@ export default function BienestarView() {
 
       {modo === 'general' && (
         <div className="stack">
-          <HeroCard icon={Flame} title="Foto del equipo" dateLabel={`${formatDateShort(parseISODate(snap.fecha))} · ${snap.responded}/${snap.total} respondieron`}>
+          <HeroCard
+            icon={Flame}
+            title="Foto del equipo"
+            dateLabel={`${formatDateShort(parseISODate(snap.fecha))} · ${snap.responded}/${snap.total} respondieron`}
+            onPrevDate={goPrevDate}
+            onNextDate={goNextDate}
+            canPrevDate={canPrevDate}
+            canNextDate={canNextDate}
+          >
             <HeroStat label="RPE medio" unit="/10" value={snap.rpeAvg} sub="Cuestionario RPE" />
             <HeroStat label="Bienestar general" unit="/5" value={snap.wellnessAvg} sub="Mezcla de los 6 indicadores Wellness" />
           </HeroCard>
@@ -153,7 +196,15 @@ export default function BienestarView() {
 
       {modo === 'wellness' && (
         <div className="stack">
-          <HeroCard icon={HeartPulse} title="Wellness — foto del equipo" dateLabel={`${formatDateShort(parseISODate(snap.fecha))} · ${snap.responded}/${snap.total} respondieron`}>
+          <HeroCard
+            icon={HeartPulse}
+            title="Wellness — foto del equipo"
+            dateLabel={`${formatDateShort(parseISODate(snap.fecha))} · ${snap.responded}/${snap.total} respondieron`}
+            onPrevDate={goPrevDate}
+            onNextDate={goNextDate}
+            canPrevDate={canPrevDate}
+            canNextDate={canNextDate}
+          >
             <HeroStat label="Bienestar general" unit="/5" value={snap.wellnessAvg} />
           </HeroCard>
           <div className="dashboard-grid">
@@ -164,10 +215,10 @@ export default function BienestarView() {
           <div className="card">
             <div className="row" style={{ gap: 9, marginBottom: 12 }}>
               <div className="icon-chip" style={{ '--chip-color': 'var(--danger-600)' }}><MapPin size={15} /></div>
-              <h4 style={{ margin: 0, fontSize: 13.5 }}>Zonas de dolor reportadas (último día)</h4>
+              <h4 style={{ margin: 0, fontSize: 13.5 }}>Zonas de dolor reportadas ({formatDateShort(parseISODate(currentFecha))})</h4>
             </div>
             {painLatest.length === 0 ? (
-              <p className="text-muted" style={{ fontSize: 12.5 }}>Nadie reportó dolor el último día con respuestas.</p>
+              <p className="text-muted" style={{ fontSize: 12.5 }}>Nadie reportó dolor ese día.</p>
             ) : (
               <div className="stack" style={{ gap: 8 }}>
                 {painLatest.map(({ zona, count }) => {
@@ -191,7 +242,15 @@ export default function BienestarView() {
 
       {modo === 'rpe' && (
         <div className="stack">
-          <HeroCard icon={Flame} title="RPE — foto del equipo" dateLabel={`${formatDateShort(parseISODate(snap.fecha))} · ${snap.responded}/${snap.total} respondieron`}>
+          <HeroCard
+            icon={Flame}
+            title="RPE — foto del equipo"
+            dateLabel={`${formatDateShort(parseISODate(snap.fecha))} · ${snap.responded}/${snap.total} respondieron`}
+            onPrevDate={goPrevDate}
+            onNextDate={goNextDate}
+            canPrevDate={canPrevDate}
+            canNextDate={canNextDate}
+          >
             <HeroStat label="RPE medio" unit="/10" value={snap.rpeAvg} />
           </HeroCard>
           <div className="card">
