@@ -117,45 +117,47 @@ export default function CalendarView({ onGoToRival }) {
             <span>🔵 Entreno</span>
           </div>
 
-          <div className="calendar-grid">
-            {dowLabels().map((d) => (
-              <div key={d} className="calendar-grid__dow">{d}</div>
-            ))}
-            {dayCells.map(({ date, iso, dayEvents, span, weekIdx }) => {
-              const outside = date.getMonth() !== cursor.getMonth()
-              const isToday = isSameDay(date, today)
-              const isCurrentWeek = weekIdx === currentWeekIndex
-              const isMatchDay = dayEvents.matches.length > 0
-              return (
-                <div
-                  key={iso}
-                  className={`calendar-day${outside ? ' is-outside' : ''}${isToday ? ' is-today' : ''}${isCurrentWeek ? ' is-current-week' : ''}${isMatchDay ? ' is-match-day' : ''}${span === 2 ? ' is-wide' : ''}`}
-                  style={span === 2 ? { gridColumn: 'span 2' } : undefined}
-                  onClick={() => setSelectedDate(date)}
-                >
-                  <div className="calendar-day__head">
-                    <span className="calendar-day__dow">{dowLabels()[(date.getDay() + 6) % 7]}</span>
-                    <span className="calendar-day__num">{date.getDate()}</span>
-                  </div>
-                  <div className="calendar-day__events">
-                    {dayEvents.trainings.map((t, i) => (
-                      <span key={`t${i}`} className={`calendar-event is-training${t.cancelled ? ' is-cancelled' : ''}`}>
-                        {t.time}
-                      </span>
-                    ))}
-                    {dayEvents.matches.map((m) => (
-                      <span key={m.id} className={`calendar-event calendar-event--match ${COMPETITION_EVENT_CLASS[m.competition] || 'is-comp-amistoso'}`}>
-                        <span className="calendar-event__shield">
-                          <PlayerAvatar fileId={opponents.find((o) => o.id === m.opponentId)?.shieldFileId} size="sm" />
-                          <span className="calendar-event__venue">{m.isHome ? '🏠' : '✈️'}</span>
+          <div className="calendar-grid-scroll">
+            <div className="calendar-grid">
+              {dowLabels().map((d) => (
+                <div key={d} className="calendar-grid__dow">{d}</div>
+              ))}
+              {dayCells.map(({ date, iso, dayEvents, span, weekIdx }) => {
+                const outside = date.getMonth() !== cursor.getMonth()
+                const isToday = isSameDay(date, today)
+                const isCurrentWeek = weekIdx === currentWeekIndex
+                const isMatchDay = dayEvents.matches.length > 0
+                return (
+                  <div
+                    key={iso}
+                    className={`calendar-day${outside ? ' is-outside' : ''}${isToday ? ' is-today' : ''}${isCurrentWeek ? ' is-current-week' : ''}${isMatchDay ? ' is-match-day' : ''}${span === 2 ? ' is-wide' : ''}`}
+                    style={span === 2 ? { gridColumn: 'span 2' } : undefined}
+                    onClick={() => setSelectedDate(date)}
+                  >
+                    <div className="calendar-day__head">
+                      <span className="calendar-day__dow">{dowLabels()[(date.getDay() + 6) % 7]}</span>
+                      <span className="calendar-day__num">{date.getDate()}</span>
+                    </div>
+                    <div className="calendar-day__events">
+                      {dayEvents.trainings.map((t, i) => (
+                        <span key={`t${i}`} className={`calendar-event is-training${t.cancelled ? ' is-cancelled' : ''}`}>
+                          {t.time}
                         </span>
-                        <span className="calendar-event__rival" title={rivalName(opponents, m.opponentId)}>{rivalCalendarLabel(opponents, m.opponentId)}</span>
-                      </span>
-                    ))}
+                      ))}
+                      {dayEvents.matches.map((m) => (
+                        <span key={m.id} className={`calendar-event calendar-event--match ${COMPETITION_EVENT_CLASS[m.competition] || 'is-comp-amistoso'}`}>
+                          <span className="calendar-event__shield">
+                            <PlayerAvatar fileId={opponents.find((o) => o.id === m.opponentId)?.shieldFileId} size="sm" />
+                            <span className="calendar-event__venue">{m.isHome ? '🏠' : '✈️'}</span>
+                          </span>
+                          <span className="calendar-event__rival" title={rivalName(opponents, m.opponentId)}>{rivalCalendarLabel(opponents, m.opponentId)}</span>
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
           </div>
         </div>
 

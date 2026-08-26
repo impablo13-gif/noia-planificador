@@ -829,10 +829,23 @@ textarea::placeholder {
   text-transform: capitalize;
 }
 
+/* Cada columna tiene un mínimo real (120px) para que quepa un nombre de
+   rival sin partirlo por mitad de palabra — en un ordenador normal, con la
+   tarjeta del calendario compartiendo sitio con Rival de la semana/Agenda,
+   7 columnas a ese mínimo no siempre caben enteras; en vez de encogerlas
+   por debajo de ese mínimo (que es lo que rompía los nombres), la
+   cuadrícula entera se desplaza en horizontal. */
+.calendar-grid-scroll {
+  overflow-x: auto;
+  margin: 0 -4px;
+  padding: 0 4px 4px;
+}
+
 .calendar-grid {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(120px, 1fr));
   gap: 6px;
+  min-width: 860px;
 }
 
 .calendar-grid__dow {
@@ -1093,6 +1106,13 @@ textarea::placeholder {
   .calendar-grid {
     grid-template-columns: 1fr;
     gap: 6px;
+    min-width: 0;
+  }
+
+  .calendar-grid-scroll {
+    overflow-x: visible;
+    margin: 0;
+    padding: 0;
   }
 
   .calendar-grid__dow {
