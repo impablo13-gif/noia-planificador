@@ -1081,12 +1081,15 @@ textarea::placeholder {
 }
 
 /* Por debajo de esto, una cuadrícula de 7 columnas deja una casilla por día
-   demasiado estrecha para leer ningún nombre entero (menos de 40px, letra a
-   letra) — se cambia a una lista vertical de un día por fila, a todo el
-   ancho, con el día de la semana + número a la izquierda y los eventos del
-   día ocupando el resto. Los días de fuera del mes se ocultan para que la
-   lista sea solo los días reales, en orden. */
-@media (max-width: 600px) {
+   demasiado estrecha para leer nombres de rival largos (incluso en tablet:
+   a ~100px de columna, un nombre de 4-5 palabras sigue partiéndose mal) —
+   se cambia a una lista vertical de un día por fila, a todo el ancho, con
+   el día de la semana + número a la izquierda y los eventos del día
+   ocupando el resto. El corte se pone en 1024px (tablet, incluida apaisada)
+   para que solo el escritorio de verdad use la cuadrícula. Los días de
+   fuera del mes se ocultan para que la lista sea solo los días reales, en
+   orden. */
+@media (max-width: 1024px) {
   .calendar-grid {
     grid-template-columns: 1fr;
     gap: 6px;
