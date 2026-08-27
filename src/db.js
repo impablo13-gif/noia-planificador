@@ -17,6 +17,7 @@ const KEYS = {
   bienestar: 'noia-plan:bienestar',
   bienestarAliases: 'noia-plan:bienestarAliases',
   asistencia: 'noia-plan:asistencia',
+  weeklyGoals: 'noia-plan:weeklyGoals',
 }
 
 function readJSON(key, fallback) {
@@ -374,6 +375,27 @@ export function setAsistenciaForDate(fecha, estados) {
   all[fecha] = { estados, updatedAt: Date.now() }
   writeJSON(KEYS.asistencia, all)
   return all
+}
+
+// ---------- Objetivos y contenidos semanales ----------
+// Un microciclo (semana) tiene su propio foco, distinto del contenido de
+// cada sesión suelta — clave = lunes de esa semana en ISO, así cada semana
+// del calendario tiene un único registro estable independientemente de en
+// qué mes se esté mirando.
+
+export function getWeeklyGoals() {
+  return readJSON(KEYS.weeklyGoals, {})
+}
+
+export function getWeeklyGoalsForWeek(weekKey) {
+  return getWeeklyGoals()[weekKey] || { objetivos: '', contenidos: '' }
+}
+
+export function setWeeklyGoalsForWeek(weekKey, patch) {
+  const all = getWeeklyGoals()
+  all[weekKey] = { ...(all[weekKey] || { objetivos: '', contenidos: '' }), ...patch }
+  writeJSON(KEYS.weeklyGoals, all)
+  return all[weekKey]
 }
 
 // ---------- Escudo del club (cabecera) ----------

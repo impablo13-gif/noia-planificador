@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react'
 import { ChevronLeft, ChevronRight, ClipboardList, StickyNote } from 'lucide-react'
-import { getMonthMatrix, dowLabels, monthLabel, toISODate, isSameDay } from '../dateUtils.js'
+import { getMonthMatrix, dowLabels, monthLabel, toISODate, isSameDay, startOfWeek, endOfWeek, formatDateShort } from '../dateUtils.js'
 import { getEventsInRange } from '../eventsEngine.js'
 import { getOpponents, getMatches, agendaClub, agendaPersonal } from '../db.js'
 import WeekRivalCard from './WeekRivalCard.jsx'
 import AgendaBox from './AgendaBox.jsx'
+import WeeklyGoalsCard from './WeeklyGoalsCard.jsx'
 import EventModal from './EventModal.jsx'
 import TrainingModal from './TrainingModal.jsx'
 import MatchModal from './MatchModal.jsx'
@@ -68,6 +69,11 @@ export default function CalendarView({ onGoToRival }) {
 
   const weeks = useMemo(() => getMonthMatrix(cursor.getFullYear(), cursor.getMonth()), [cursor])
   const currentWeekIndex = weeks.findIndex((week) => week.some((d) => isSameDay(d, today)))
+  // La semana activa de verdad (hoy), no la que se esté mirando en el mes —
+  // los Objetivos de la semana viven siempre en la barra lateral con el
+  // foco de "ahora mismo", igual que Rival de la semana.
+  const activeWeekKey = toISODate(startOfWeek(today))
+  const activeWeekLabel = `${formatDateShort(startOfWeek(today))} – ${formatDateShort(endOfWeek(today))}`
   const rangeStart = weeks[0][0]
   const rangeEnd = weeks[weeks.length - 1][6]
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -163,6 +169,7 @@ export default function CalendarView({ onGoToRival }) {
 
         <div className="stack">
           <WeekRivalCard matches={allMatches} opponents={opponents} onGoToRival={onGoToRival} />
+          <WeeklyGoalsCard weekKey={activeWeekKey} weekLabel={activeWeekLabel} />
           <AgendaBox title="Agenda del club" icon={ClipboardList} api={agendaClub} placeholder="Tarea de coaching pendiente…" />
           <AgendaBox title="Recordatorios" icon={StickyNote} api={agendaPersonal} placeholder="Recordatorio o tarea del día a día…" />
         </div>

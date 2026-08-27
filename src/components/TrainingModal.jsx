@@ -29,6 +29,7 @@ export default function TrainingModal({ training, onClose, onSaved }) {
   const [rpeTick, setRpeTick] = useState(0)
   const [time, setTime] = useState(training.time || '19:00')
   const [label, setLabel] = useState(training.label || 'Entreno')
+  const [sessionGoals, setSessionGoals] = useState(training.sessionGoals || '')
   const [note, setNote] = useState(training.note || '')
   const [status, setStatus] = useState(training.status || 'pendiente')
   const [sessionText, setSessionText] = useState(training.sessionText || '')
@@ -41,7 +42,7 @@ export default function TrainingModal({ training, onClose, onSaved }) {
   }
 
   function handleSave() {
-    const patch = { time, label, note, status, sessionText, sessionFileId, cancelled }
+    const patch = { time, label, sessionGoals, note, status, sessionText, sessionFileId, cancelled }
     if (date !== training.date) {
       // Mover de fecha: el día original queda cancelado (con nota) y se crea
       // el entreno en la fecha nueva, conservando hora/contenido/sesión.
@@ -56,7 +57,7 @@ export default function TrainingModal({ training, onClose, onSaved }) {
   function handleToggleCancelled() {
     const next = !cancelled
     setCancelled(next)
-    persistAt(training.date, { time, label, note, status, sessionText, sessionFileId, cancelled: next })
+    persistAt(training.date, { time, label, sessionGoals, note, status, sessionText, sessionFileId, cancelled: next })
     onSaved()
   }
 
@@ -103,6 +104,11 @@ export default function TrainingModal({ training, onClose, onSaved }) {
         <div className="field">
           <label className="field__label">Contenido / etiqueta</label>
           <input type="text" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Ej. FUERZA + TAC-TEC" />
+        </div>
+
+        <div className="field">
+          <label className="field__label">Objetivos de la sesión</label>
+          <textarea value={sessionGoals} onChange={(e) => setSessionGoals(e.target.value)} placeholder="Ej. Mejorar la salida de presión en zona 2, finalizar en superioridad…" />
         </div>
 
         <div className="field">
