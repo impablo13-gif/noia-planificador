@@ -206,6 +206,21 @@ button {
   padding: 24px 20px 64px;
 }
 
+/* En un monitor ancho, 1180px deja mucho hueco en blanco a los lados — se
+   aprovecha ese espacio de sobra ensanchando el contenido, y de paso la
+   barra lateral del Calendario (Rival de la semana, Objetivos de la
+   semana...) gana más peso relativo frente a la cuadrícula del mes, que no
+   necesita crecer tanto como ellas. */
+@media (min-width: 1400px) {
+  .app-main {
+    max-width: 1560px;
+  }
+
+  .home-grid {
+    grid-template-columns: 3fr 2fr;
+  }
+}
+
 /* ---------- Primitives ---------- */
 
 .card {
