@@ -1222,6 +1222,25 @@ textarea::placeholder {
   }
 }
 
+/* Barra lateral del Calendario: apilada como siempre por defecto, pero en
+   pantalla ancha (donde ya se le da más manga ancha al ensancharla) pasa a
+   2 columnas — Rival de la semana + Objetivos de la semana arriba, las dos
+   agendas debajo — para que crezca a lo ancho en vez de solo a lo alto y
+   no haga falta bajar la página para ver las cuatro tarjetas. */
+.calendar-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (min-width: 1400px) {
+  .calendar-sidebar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+
 .rival-card {
   background: linear-gradient(135deg, var(--red-800), var(--red-700));
   color: var(--white);

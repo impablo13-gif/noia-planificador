@@ -167,7 +167,7 @@ export default function CalendarView({ onGoToRival }) {
           </div>
         </div>
 
-        <div className="stack">
+        <div className="calendar-sidebar">
           <WeekRivalCard matches={allMatches} opponents={opponents} onGoToRival={onGoToRival} />
           <WeeklyGoalsCard weekKey={activeWeekKey} weekLabel={activeWeekLabel} />
           <AgendaBox title="Agenda del club" icon={ClipboardList} api={agendaClub} placeholder="Tarea de coaching pendiente…" />
