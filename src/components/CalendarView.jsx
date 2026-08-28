@@ -6,6 +6,7 @@ import { getOpponents, getMatches, agendaClub, agendaPersonal } from '../db.js'
 import WeekRivalCard from './WeekRivalCard.jsx'
 import AgendaBox from './AgendaBox.jsx'
 import WeeklyGoalsCard from './WeeklyGoalsCard.jsx'
+import MatchNotesCard from './MatchNotesCard.jsx'
 import EventModal from './EventModal.jsx'
 import TrainingModal from './TrainingModal.jsx'
 import MatchModal from './MatchModal.jsx'
@@ -169,6 +170,7 @@ export default function CalendarView({ onGoToRival }) {
 
         <div className="calendar-sidebar">
           <WeekRivalCard matches={allMatches} opponents={opponents} onGoToRival={onGoToRival} />
+          <MatchNotesCard matches={allMatches} opponents={opponents} />
           <WeeklyGoalsCard weekKey={activeWeekKey} weekLabel={activeWeekLabel} />
           <AgendaBox title="Agenda del club" icon={ClipboardList} api={agendaClub} placeholder="Tarea de coaching pendiente…" />
           <AgendaBox title="Recordatorios" icon={StickyNote} api={agendaPersonal} placeholder="Recordatorio o tarea del día a día…" />

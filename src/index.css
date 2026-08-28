@@ -1224,9 +1224,13 @@ textarea::placeholder {
 
 /* Barra lateral del Calendario: apilada como siempre por defecto, pero en
    pantalla ancha (donde ya se le da más manga ancha al ensancharla) pasa a
-   2 columnas — Rival de la semana + Objetivos de la semana arriba, las dos
-   agendas debajo — para que crezca a lo ancho en vez de solo a lo alto y
-   no haga falta bajar la página para ver las cuatro tarjetas. */
+   2 columnas para crecer a lo ancho en vez de solo a lo alto. Va en
+   columnas CSS (no grid de filas) a propósito: con tarjetas de alturas
+   tan distintas (Objetivos de la semana, con dos textareas, es del doble
+   de alta que una agenda), un grid de filas empareja la más alta de cada
+   fila con una más baja y deja hueco en blanco al lado — las columnas CSS
+   reparten las tarjetas para que las dos columnas queden más igualadas de
+   alto, sin que ninguna sobrepase a la cuadrícula del mes. */
 .calendar-sidebar {
   display: flex;
   flex-direction: column;
@@ -1235,9 +1239,14 @@ textarea::placeholder {
 
 @media (min-width: 1400px) {
   .calendar-sidebar {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    align-items: start;
+    display: block;
+    column-count: 2;
+    column-gap: 16px;
+  }
+
+  .calendar-sidebar > * {
+    break-inside: avoid;
+    margin-bottom: 16px;
   }
 }
 
