@@ -19,11 +19,15 @@ export default function EstadisticasView() {
 
   const players = getPlayers()
   const allMatches = getPartidosNpa()
-  // Mismos equipos que en Plantilla (derivados de la plantilla, no de qué
-  // partidos haya ya importados) para que la diferenciación 1º Equipo /
-  // Juvenil sea siempre visible, aunque a un equipo aún no le hayas
-  // sincronizado ningún partido.
-  const equipos = [...new Set(players.map((p) => p.equipo).filter(Boolean))]
+  // Equipos de la plantilla (para que la diferenciación 1º Equipo / Juvenil
+  // sea siempre visible, aunque a un equipo aún no le hayas sincronizado
+  // ningún partido) MÁS los equipos que ya traigan partidos importados: el
+  // nombre de equipo lo escribe Pablo a mano en NPA Stats y en la Plantilla
+  // por separado, así que si no coinciden letra por letra (p. ej. "NOIA
+  // PORTUS APOSTOLI" contra "Juvenil División de Honor"), el partido se
+  // importaba igualmente pero quedaba invisible: sin chip para filtrarlo y
+  // fuera del equipo por defecto, como si "no hubiera actualizado nada".
+  const equipos = [...new Set([...players.map((p) => p.equipo), ...allMatches.map((m) => m.equipo)].filter(Boolean))]
   const defaultEquipo = equipos.find((eq) => /juvenil/i.test(eq)) || equipos[0] || null
   const activeEquipo = equipoFilter && equipos.includes(equipoFilter) ? equipoFilter : defaultEquipo
   const equipoMatches = activeEquipo ? allMatches.filter((m) => m.equipo === activeEquipo) : allMatches
@@ -65,6 +69,19 @@ export default function EstadisticasView() {
         let msg = `Actualizado: ${parts.join(' · ')}.`
         if (r.unmatchedPlayers?.length) {
           msg += ` No encontré en la plantilla a: ${r.unmatchedPlayers.join(', ')} — sus stats de este partido no se han podido aplicar.`
+        }
+        // El nombre de equipo del partido importado (isNpaMatchExport) puede
+        // no coincidir letra por letra con ningún equipo de la Plantilla --
+        // el partido se guarda igual, pero antes se quedaba invisible en
+        // Estadísticas sin ningún aviso (parecía que "no había actualizado
+        // nada"). Si pasa, se avisa y se selecciona ese equipo de una vez
+        // para que se vea el resultado del archivo que se acaba de subir.
+        const rosterEquipos = new Set(players.map((p) => p.equipo).filter(Boolean))
+        if (isNpaMatchExport(data) && data.equipo) {
+          if (!rosterEquipos.has(data.equipo)) {
+            msg += ` El archivo trae el equipo "${data.equipo}", que no coincide con ninguno de tu Plantilla (${[...rosterEquipos].join(', ') || 'sin equipos'}) — se ha creado como equipo aparte; revisa que sea el mismo o cambia el nombre en uno de los dos sitios para que se junten.`
+          }
+          setEquipoFilter(data.equipo)
         }
         setSyncMsg(msg)
         bump()
