@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Upload, ChevronRight, ArrowLeft, BarChart3, ListOrdered } from 'lucide-react'
-import { getPartidosNpa, getPlayers, getMatches } from '../db.js'
+import { Upload, ChevronRight, ArrowLeft, BarChart3, ListOrdered, Trash2 } from 'lucide-react'
+import { getPartidosNpa, getPlayers, getMatches, removeMatch, updateMatch, removePartidoNpa } from '../db.js'
 import { isNpaExport, syncNpaExport, previewNpaMatchImport } from '../npaSync.js'
 import { buildMatchRows, filterByCompetition } from '../statsEngine.js'
 import { formatDateShort, formatDateLong, parseISODate } from '../dateUtils.js'
@@ -14,27 +14,18 @@ const COMPETICIONES = ['Liga', 'Amistoso', 'Copa']
 export default function EstadisticasView() {
   const [refreshKey, setRefreshKey] = useState(0)
   const [syncMsg, setSyncMsg] = useState('')
-  const [equipoFilter, setEquipoFilter] = useState(null)
   const [competicionFilter, setCompeticionFilter] = useState(null)
   const [openMatchId, setOpenMatchId] = useState(null)
   const [reviewPreview, setReviewPreview] = useState(null) // preview de previewNpaMatchImport a la espera de que Pablo lo confirme/edite
 
   const players = getPlayers()
-  const allMatches = getPartidosNpa()
-  // Equipos de la plantilla (para que la diferenciación 1º Equipo / Juvenil
-  // sea siempre visible, aunque a un equipo aún no le hayas sincronizado
-  // ningún partido) MÁS los equipos que ya traigan partidos importados: el
-  // nombre de equipo lo escribe Pablo a mano en NPA Stats y en la Plantilla
-  // por separado, así que si no coinciden letra por letra (p. ej. "NOIA
-  // PORTUS APOSTOLI" contra "Juvenil División de Honor"), el partido se
-  // importaba igualmente pero quedaba invisible: sin chip para filtrarlo y
-  // fuera del equipo por defecto, como si "no hubiera actualizado nada".
-  const equipos = [...new Set([...players.map((p) => p.equipo), ...allMatches.map((m) => m.equipo)].filter(Boolean))]
-  const defaultEquipo = equipos.find((eq) => /juvenil/i.test(eq)) || equipos[0] || null
-  const activeEquipo = equipoFilter && equipos.includes(equipoFilter) ? equipoFilter : defaultEquipo
-  const equipoMatches = activeEquipo ? allMatches.filter((m) => m.equipo === activeEquipo) : allMatches
+  // Esta pantalla es solo para el Juvenil (el único equipo del que Pablo
+  // sube partidos de NPA Stats aquí) — cualquier partido importado con otro
+  // nombre de equipo (pruebas, "1º Equipo", el nombre de club tal cual sin
+  // corregir…) queda fuera sin más, no aparece ni como chip ni como opción.
+  const allMatches = getPartidosNpa().filter((m) => /juvenil/i.test(m.equipo || ''))
   const competitionByNpaId = new Map(getMatches().filter((cm) => cm.npaMatchId).map((cm) => [cm.npaMatchId, cm.competition]))
-  const matches = filterByCompetition(equipoMatches, competitionByNpaId, competicionFilter)
+  const matches = filterByCompetition(allMatches, competitionByNpaId, competicionFilter)
   const openMatch = openMatchId ? matches.find((m) => m.id === openMatchId) : null
 
   function bump() {
@@ -91,6 +82,22 @@ export default function EstadisticasView() {
     bump()
   }
 
+  // Mismo criterio que ya usa MatchModal para borrar un partido enlazado:
+  // si el Calendario lo creó el propio import de NPA Stats (id "npa-…"), se
+  // borra entero con él; si ya existía antes (una jornada de liga sembrada a
+  // la que solo se le enganchó el resultado), se desengancha en vez de
+  // borrar el partido del Calendario, que Pablo puso a mano.
+  function handleRemoveMatch(m) {
+    const cal = getMatches().find((cm) => cm.npaMatchId === m.id)
+    if (cal) {
+      if (cal.id.startsWith('npa-')) removeMatch(cal.id)
+      else updateMatch(cal.id, { npaMatchId: null, npaReportFileId: null, npaReportGeneratedAt: null })
+    }
+    removePartidoNpa(m.id)
+    setOpenMatchId(null)
+    bump()
+  }
+
   const rows = buildMatchRows(matches)
 
   return (
@@ -109,12 +116,16 @@ export default function EstadisticasView() {
             <span className="badge badge-red" style={{ fontSize: 15, padding: '8px 16px' }}>
               Noia {openMatch.teamGoals} - {openMatch.rivalScore} {openMatch.rivalName}
             </span>
+            <button type="button" className="btn btn-danger" onClick={() => handleRemoveMatch(openMatch)}>
+              <Trash2 size={14} />
+              Eliminar
+            </button>
           </PageHeader>
           <StatsDashboard matches={[openMatch]} players={players} />
         </>
       ) : (
         <>
-          <PageHeader icon={BarChart3} title="Estadísticas" hint={`Datos de partido importados de NPA Stats${activeEquipo ? ` · ${activeEquipo}` : ''}`}>
+          <PageHeader icon={BarChart3} title="Estadísticas" hint="Datos de partido del Juvenil importados de NPA Stats">
             <label className="btn btn-primary" style={{ cursor: 'pointer' }}>
               <Upload size={15} />
               Subir informe (NPA Stats)
@@ -123,21 +134,12 @@ export default function EstadisticasView() {
           </PageHeader>
 
           <p className="field__help" style={{ marginTop: -10, marginBottom: 16 }}>
-            Sube el JSON de "Descargar datos (JSON)" del informe de un partido, o la "Copia de seguridad" completa de NPA Stats — no el PDF, que es una imagen y no lleva los datos por dentro. Al subirlo se actualizan Estadísticas, Plantilla, la ficha del partido en el Calendario y la Asistencia de esa fecha.
+            Sube el JSON de "Descargar datos (JSON)" del informe de un partido, o la "Copia de seguridad" completa de NPA Stats — no el PDF, que es una imagen y no lleva los datos por dentro. Al subirlo se actualizan Estadísticas, Plantilla, la ficha del partido en el Calendario y la Asistencia de esa fecha. Solo se muestran aquí los partidos del Juvenil.
           </p>
 
           {syncMsg && <div className="banner banner-info" style={{ marginBottom: 16 }}>{syncMsg}</div>}
 
           <div className="row" style={{ flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
-            {equipos.length > 1 && (
-              <div className="chip-group">
-                {equipos.map((eq) => (
-                  <button key={eq} type="button" className={`chip${activeEquipo === eq ? ' is-active' : ''}`} onClick={() => setEquipoFilter(eq)}>
-                    {eq}
-                  </button>
-                ))}
-              </div>
-            )}
             <div className="chip-group">
               <button type="button" className={`chip${!competicionFilter ? ' is-active' : ''}`} onClick={() => setCompeticionFilter(null)}>
                 Todas

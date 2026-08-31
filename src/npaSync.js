@@ -326,10 +326,15 @@ export function previewNpaMatchImport(data) {
   const equipoAliases = getNpaEquipoAliases()
   const rosterEquipos = [...new Set(players.map((p) => p.equipo).filter(Boolean))]
   const aliasedEquipo = equipoAliases[npaEquipo]
+  // Pablo solo sube a NPA Stats los partidos del Juvenil, así que si hay más
+  // de un equipo en la Plantilla (p. ej. también "1º Equipo") y nada más
+  // decide, se prefiere el que tenga "juvenil" en el nombre antes que dejarlo
+  // en blanco — mismo criterio que ya usa Estadísticas para el equipo por
+  // defecto.
   const equipoGuess = (aliasedEquipo && rosterEquipos.includes(aliasedEquipo)) ? aliasedEquipo
     : rosterEquipos.includes(npaEquipo) ? npaEquipo
     : rosterEquipos.length === 1 ? rosterEquipos[0]
-    : ''
+    : rosterEquipos.find((eq) => /juvenil/i.test(eq)) || ''
 
   const playerAliases = getNpaPlayerAliases()
   const playerRows = (m.players || []).map((p) => {
