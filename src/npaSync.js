@@ -6,14 +6,61 @@
 // partidos se upsertean por una clave estable equipo+fecha.
 
 import {
-  getPlayers, savePlayers, uid, saveFile,
+  getPlayers, savePlayers, addPlayer, uid, saveFile,
   getClubCrestFileId, setClubCrestFileId, upsertPartidosNpa,
   getMatches, addMatch, updateMatch,
   getAsistenciaForDate, setAsistenciaForDate,
+  getNpaPlayerAliases, setNpaPlayerAlias, getNpaEquipoAliases, setNpaEquipoAlias,
 } from './db.js'
 import { matchPlayerByName } from './statsEngine.js'
+import { foldName } from './bienestarSync.js'
 
 const NPA_POSICION_MAP = { POR: 'Portero', CIE: 'Cierre', ALA: 'Ala', PIV: 'Pívot' }
+
+// Mismo criterio de emparejamiento por nombre que bienestarSync.js (alias
+// confirmado > nombre exacto > solapamiento de palabras, con el último
+// token —normalmente el apellido— pesando el doble), aplicado aquí a los
+// nombres de jugador del export de un solo partido de NPA Stats en vez de
+// a las respuestas del cuestionario. Motes, acentos o apellidos que no
+// coincidan letra por letra con la Plantilla dejaban antes a todo el mundo
+// como "no encontrado" (ver `previewNpaMatchImport`, que usa esto para
+// sugerir un emparejamiento en el aviso de revisión antes de importar).
+function tokenOverlapScore(nameTokens, rosterTokens) {
+  let score = 0
+  nameTokens.forEach((t, i) => {
+    if (t.length <= 2) return
+    const weight = i === nameTokens.length - 1 && nameTokens.length > 1 ? 2 : 1
+    rosterTokens.forEach((rt) => {
+      if (rt.length <= 2) return
+      if (t === rt || t.startsWith(rt) || rt.startsWith(t)) score += weight
+    })
+  })
+  return score
+}
+
+function matchNpaPlayer(players, npaName, aliases) {
+  const norm = foldName(npaName)
+  if (!norm) return null
+
+  const aliasId = aliases?.[norm]
+  if (aliasId) {
+    const aliased = players.find((p) => p.id === aliasId)
+    if (aliased) return aliased
+  }
+
+  const exact = players.find((p) => foldName(p.nombre) === norm)
+  if (exact) return exact
+
+  const tokens = norm.split(/\s+/)
+  const scored = players
+    .map((p) => ({ p, score: tokenOverlapScore(tokens, foldName(p.nombre).split(/\s+/)) }))
+    .filter((s) => s.score > 0)
+    .sort((a, b) => b.score - a.score)
+  if (scored.length && (scored.length === 1 || scored[0].score > scored[1].score)) {
+    return scored[0].p
+  }
+  return null
+}
 
 async function dataUriToFileId(dataUri, filename) {
   const res = await fetch(dataUri)
@@ -260,4 +307,89 @@ export async function syncNpaMatchExport(data) {
   const rest = await applyParsedMatches([pm], players)
 
   return { playersAdded: 0, playersUpdated: 0, matchesAdded, matchesUpdated, ...rest, unmatchedPlayers }
+}
+
+// Primer paso al subir un export de un solo partido: NO guarda nada
+// todavía, solo prepara lo que hace falta para el aviso de revisión (equipo
+// + cada jugador con su mejor candidato de la Plantilla, si lo hay) para
+// que Pablo pueda corregir a mano antes de aplicar — ver `applyNpaMatchImport`.
+// La copia de seguridad completa (`isNpaExport`) no pasa por aquí: ya trae
+// dorsal/posición/foto fiables de cada jugador y se sincroniza directa,
+// como siempre.
+export function previewNpaMatchImport(data) {
+  if (isNpaExport(data)) return { kind: 'full', data }
+  if (!isNpaMatchExport(data)) throw new Error('ese archivo no parece un export de NPA Stats')
+
+  const m = data.partido
+  const npaEquipo = (data.equipo || '').trim()
+  const players = getPlayers()
+  const equipoAliases = getNpaEquipoAliases()
+  const rosterEquipos = [...new Set(players.map((p) => p.equipo).filter(Boolean))]
+  const aliasedEquipo = equipoAliases[npaEquipo]
+  const equipoGuess = (aliasedEquipo && rosterEquipos.includes(aliasedEquipo)) ? aliasedEquipo
+    : rosterEquipos.includes(npaEquipo) ? npaEquipo
+    : rosterEquipos.length === 1 ? rosterEquipos[0]
+    : ''
+
+  const playerAliases = getNpaPlayerAliases()
+  const playerRows = (m.players || []).map((p) => {
+    const npaName = (p.name || '').trim()
+    const matched = npaName ? matchNpaPlayer(players, npaName, playerAliases) : null
+    return { npaName, npaNumber: p.number ?? '', npaPosition: p.position || '', matchedId: matched ? matched.id : null }
+  }).filter((r) => r.npaName)
+
+  return { kind: 'match', data, npaEquipo, equipoGuess, rosterEquipos, playerRows }
+}
+
+// Segundo paso: aplica el import ya con el equipo y el emparejamiento de
+// cada jugador que Pablo confirmó en el aviso de revisión.
+// `assignments` es un objeto `{ [npaName]: playerId | 'NEW' | '' }` —
+// '' significa "sin asignar" (ese jugador se queda sin casar, como antes).
+// Cada elección queda guardada como alias para siempre, y el nombre y el
+// equipo dentro del partido importado se reescriben a la forma exacta de la
+// Plantilla — así, más adelante, cualquier sitio de la app que busque por
+// nombre (fichas de jugador, quintetos, asistencia…) lo reconoce sin tener
+// que enterarse de que existen alias.
+export async function applyNpaMatchImport(preview, { equipo, assignments }) {
+  const data = preview.data
+  const equipoFinal = (equipo || '').trim()
+  if (preview.npaEquipo) setNpaEquipoAlias(preview.npaEquipo, equipoFinal)
+
+  let players = getPlayers()
+  let playersAdded = 0
+  const nameMap = new Map() // nombre de NPA Stats (trim) -> nombre canónico de la Plantilla
+
+  for (const row of preview.playerRows) {
+    const choice = assignments[row.npaName]
+    if (!choice) continue // sin asignar: se deja tal cual, como hasta ahora
+    let player
+    if (choice === 'NEW') {
+      const posicion = NPA_POSICION_MAP[row.npaPosition] || 'Ala'
+      players = addPlayer({ nombre: row.npaName, dorsal: row.npaNumber ?? '', posicion, equipo: equipoFinal, fechaNacimiento: '', lateralidad: '', clubProcedencia: '', fotoFileId: null, notas: '' })
+      player = players[players.length - 1]
+      playersAdded++
+    } else {
+      player = players.find((p) => p.id === choice)
+    }
+    if (!player) continue
+    setNpaPlayerAlias(foldName(row.npaName), player.id)
+    nameMap.set(row.npaName, player.nombre)
+  }
+
+  const renombra = (nombre) => (nombre && nameMap.has(nombre.trim())) ? nameMap.get(nombre.trim()) : nombre
+  const m = data.partido
+  const patchedPartido = {
+    ...m,
+    players: (m.players || []).map((p) => ({ ...p, name: renombra(p.name) })),
+    goalEvents: (m.goalEvents || []).map((ev) => ({
+      ...ev,
+      authorName: renombra(ev.authorName),
+      assistName: renombra(ev.assistName),
+      onCourt: (ev.onCourt || []).map((oc) => ({ ...oc, name: renombra(oc.name) })),
+    })),
+    convocados: (m.convocados || null) && m.convocados.map((c) => ({ ...c, name: renombra(c.name) })),
+  }
+
+  const rest = await syncNpaMatchExport({ ...data, equipo: equipoFinal, partido: patchedPartido })
+  return { ...rest, playersAdded }
 }

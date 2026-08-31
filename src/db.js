@@ -14,6 +14,8 @@ const KEYS = {
   clubCrestFileId: 'noia-plan:clubCrestFileId',
   injuries: 'noia-plan:injuries',
   partidosNpa: 'noia-plan:partidosNpa',
+  npaPlayerAliases: 'noia-plan:npaPlayerAliases',
+  npaEquipoAliases: 'noia-plan:npaEquipoAliases',
   bienestar: 'noia-plan:bienestar',
   bienestarAliases: 'noia-plan:bienestarAliases',
   asistencia: 'noia-plan:asistencia',
@@ -287,6 +289,32 @@ export function removePartidoNpa(id) {
   const next = getPartidosNpa().filter((m) => m.id !== id)
   savePartidosNpa(next)
   return next
+}
+
+// Alias nombre-de-NPA-Stats → jugador y equipo-de-NPA-Stats → equipo de la
+// Plantilla: el nombre/equipo que Pablo escribe en NPA Stats casi nunca
+// coincide letra por letra con la Plantilla (motes, acentos, "NOIA PORTUS
+// APOSTOLI" contra "Juvenil División de Honor"…), así que una vez que los
+// empareja a mano en el aviso de revisión al subir un informe, queda
+// recordado para siempre y las siguientes subidas no vuelven a preguntar.
+export function getNpaPlayerAliases() {
+  return readJSON(KEYS.npaPlayerAliases, {})
+}
+
+export function setNpaPlayerAlias(key, playerId) {
+  const aliases = getNpaPlayerAliases()
+  aliases[key] = playerId
+  writeJSON(KEYS.npaPlayerAliases, aliases)
+}
+
+export function getNpaEquipoAliases() {
+  return readJSON(KEYS.npaEquipoAliases, {})
+}
+
+export function setNpaEquipoAlias(npaEquipo, rosterEquipo) {
+  const aliases = getNpaEquipoAliases()
+  aliases[npaEquipo] = rosterEquipo
+  writeJSON(KEYS.npaEquipoAliases, aliases)
 }
 
 // ---------- Bienestar / RPE diario (cuestionario Google Forms) ----------

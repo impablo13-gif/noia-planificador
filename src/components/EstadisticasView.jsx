@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Upload, ChevronRight, ArrowLeft, BarChart3, ListOrdered } from 'lucide-react'
 import { getPartidosNpa, getPlayers, getMatches } from '../db.js'
-import { isNpaExport, syncNpaExport, isNpaMatchExport, syncNpaMatchExport } from '../npaSync.js'
+import { isNpaExport, syncNpaExport, previewNpaMatchImport } from '../npaSync.js'
 import { buildMatchRows, filterByCompetition } from '../statsEngine.js'
 import { formatDateShort, formatDateLong, parseISODate } from '../dateUtils.js'
 import StatsDashboard from './StatsDashboard.jsx'
 import PageHeader from './PageHeader.jsx'
+import NpaMatchReviewModal from './NpaMatchReviewModal.jsx'
 
 const COMPETITION_ROW_CLASS = { Liga: 'match-row--liga', Amistoso: 'match-row--amistoso', Copa: 'match-row--copa' }
 const COMPETICIONES = ['Liga', 'Amistoso', 'Copa']
@@ -16,6 +17,7 @@ export default function EstadisticasView() {
   const [equipoFilter, setEquipoFilter] = useState(null)
   const [competicionFilter, setCompeticionFilter] = useState(null)
   const [openMatchId, setOpenMatchId] = useState(null)
+  const [reviewPreview, setReviewPreview] = useState(null) // preview de previewNpaMatchImport a la espera de que Pablo lo confirme/edite
 
   const players = getPlayers()
   const allMatches = getPartidosNpa()
@@ -47,49 +49,46 @@ export default function EstadisticasView() {
     reader.onload = async () => {
       try {
         const data = JSON.parse(reader.result)
-        let r
         if (isNpaExport(data)) {
+          // Copia de seguridad completa: ya trae dorsal/posición/foto fiables
+          // de cada jugador y equipo, así que se sincroniza directa, sin
+          // pasar por el aviso de revisión (que es solo para el export de un
+          // solo partido, donde el equipo/jugadores hay que casarlos a mano).
           setSyncMsg('Sincronizando…')
-          r = await syncNpaExport(data)
-        } else if (isNpaMatchExport(data)) {
-          setSyncMsg('Sincronizando…')
-          r = await syncNpaMatchExport(data)
-        } else {
-          throw new Error('ese archivo no parece un export de NPA Stats')
-        }
-        const parts = [
-          `${r.matchesAdded} partido${r.matchesAdded === 1 ? '' : 's'} nuevo${r.matchesAdded === 1 ? '' : 's'}, ${r.matchesUpdated} actualizado${r.matchesUpdated === 1 ? '' : 's'}`,
-        ]
-        if (r.playersAdded || r.playersUpdated) {
-          parts.push(`plantilla ${r.playersAdded} nueva${r.playersAdded === 1 ? '' : 's'}, ${r.playersUpdated} actualizada${r.playersUpdated === 1 ? '' : 's'}`)
-        }
-        parts.push(`calendario: ${r.calendarMatchesLinked} enlazado${r.calendarMatchesLinked === 1 ? '' : 's'}, ${r.calendarMatchesCreated} creado${r.calendarMatchesCreated === 1 ? '' : 's'}`)
-        if (r.reportsSynced) parts.push(`${r.reportsSynced} informe${r.reportsSynced === 1 ? '' : 's'} de partido recogido${r.reportsSynced === 1 ? '' : 's'}`)
-        if (r.attendanceMarked) parts.push(`asistencia marcada a ${r.attendanceMarked} jugador${r.attendanceMarked === 1 ? '' : 'es'}`)
-        let msg = `Actualizado: ${parts.join(' · ')}.`
-        if (r.unmatchedPlayers?.length) {
-          msg += ` No encontré en la plantilla a: ${r.unmatchedPlayers.join(', ')} — sus stats de este partido no se han podido aplicar.`
-        }
-        // El nombre de equipo del partido importado (isNpaMatchExport) puede
-        // no coincidir letra por letra con ningún equipo de la Plantilla --
-        // el partido se guarda igual, pero antes se quedaba invisible en
-        // Estadísticas sin ningún aviso (parecía que "no había actualizado
-        // nada"). Si pasa, se avisa y se selecciona ese equipo de una vez
-        // para que se vea el resultado del archivo que se acaba de subir.
-        const rosterEquipos = new Set(players.map((p) => p.equipo).filter(Boolean))
-        if (isNpaMatchExport(data) && data.equipo) {
-          if (!rosterEquipos.has(data.equipo)) {
-            msg += ` El archivo trae el equipo "${data.equipo}", que no coincide con ninguno de tu Plantilla (${[...rosterEquipos].join(', ') || 'sin equipos'}) — se ha creado como equipo aparte; revisa que sea el mismo o cambia el nombre en uno de los dos sitios para que se junten.`
+          const r = await syncNpaExport(data)
+          const parts = [
+            `${r.matchesAdded} partido${r.matchesAdded === 1 ? '' : 's'} nuevo${r.matchesAdded === 1 ? '' : 's'}, ${r.matchesUpdated} actualizado${r.matchesUpdated === 1 ? '' : 's'}`,
+          ]
+          if (r.playersAdded || r.playersUpdated) {
+            parts.push(`plantilla ${r.playersAdded} nueva${r.playersAdded === 1 ? '' : 's'}, ${r.playersUpdated} actualizada${r.playersUpdated === 1 ? '' : 's'}`)
           }
-          setEquipoFilter(data.equipo)
+          parts.push(`calendario: ${r.calendarMatchesLinked} enlazado${r.calendarMatchesLinked === 1 ? '' : 's'}, ${r.calendarMatchesCreated} creado${r.calendarMatchesCreated === 1 ? '' : 's'}`)
+          if (r.reportsSynced) parts.push(`${r.reportsSynced} informe${r.reportsSynced === 1 ? '' : 's'} de partido recogido${r.reportsSynced === 1 ? '' : 's'}`)
+          if (r.attendanceMarked) parts.push(`asistencia marcada a ${r.attendanceMarked} jugador${r.attendanceMarked === 1 ? '' : 'es'}`)
+          let msg = `Actualizado: ${parts.join(' · ')}.`
+          if (r.unmatchedPlayers?.length) {
+            msg += ` No encontré en la plantilla a: ${r.unmatchedPlayers.join(', ')} — sus stats de este partido no se han podido aplicar.`
+          }
+          setSyncMsg(msg)
+          bump()
+        } else {
+          // Export de un solo partido: se prepara el aviso de revisión
+          // (equipo + cada jugador, con lo que se haya podido adivinar) y no
+          // se guarda nada todavía — se aplica solo si Pablo confirma en el
+          // modal, con el equipo/jugadores ya corregidos a mano si hacía falta.
+          setReviewPreview(previewNpaMatchImport(data))
         }
-        setSyncMsg(msg)
-        bump()
       } catch (err) {
         setSyncMsg(`No se pudo actualizar: ${err.message}.`)
       }
     }
     reader.readAsText(file)
+  }
+
+  function handleReviewApplied(msg) {
+    setReviewPreview(null)
+    setSyncMsg(msg)
+    bump()
   }
 
   const rows = buildMatchRows(matches)
@@ -181,6 +180,14 @@ export default function EstadisticasView() {
             </div>
           )}
         </>
+      )}
+
+      {reviewPreview && (
+        <NpaMatchReviewModal
+          preview={reviewPreview}
+          onClose={() => setReviewPreview(null)}
+          onApplied={handleReviewApplied}
+        />
       )}
     </div>
   )
