@@ -292,13 +292,22 @@ const COL_WELLNESS = toColMap(COLS_WELLNESS)
 const COL_RPE = toColMap(COLS_RPE)
 
 // Cada fila pegada puede venir de cualquiera de los dos formularios (o del
-// antiguo combinado) — se distingue solo por cuántos campos trae: el
+// antiguo combinado) — se distingue por cuántos campos trae: el
 // "Cuestionario RPE" tiene 8 (hasta el RPE final), el "Cuestionario
-// WELLNESS" 12 (sin RPE), y el combinado antiguo 13 (con todo). Se elige el
-// más cercano en vez de exigir un número exacto, por si el copiado pierde
-// algún campo vacío al final.
+// WELLNESS" 12 más una 13ª columna que el formulario repite con el propio
+// nombre (una confirmación de identidad, no un dato), y el combinado
+// antiguo 13 con el RPE de verdad en esa última columna. Ambos miden 13,
+// así que a igual longitud se distingue por el CONTENIDO de la última
+// columna: si es un número (0-10, un RPE de verdad), es el combinado; si es
+// texto (el nombre repetido), es Wellness y esa columna de más se ignora
+// sin más — si no, ese nombre se leía como si fuera el RPE y lo dejaba a
+// null, pudiendo incluso borrar un RPE real ya guardado ese día.
 function pasteColFor(row) {
-  if (row.length >= 13) return COL_COMBINED
+  if (row.length >= 13) {
+    const last = (row[row.length - 1] || '').trim()
+    const lastIsNumber = last !== '' && Number.isFinite(Number(last))
+    return lastIsNumber ? COL_COMBINED : COL_WELLNESS
+  }
   if (row.length >= 10) return COL_WELLNESS
   return COL_RPE
 }
