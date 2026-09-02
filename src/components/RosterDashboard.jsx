@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { Goal, Handshake, Clock, Flame, HeartPulse } from 'lucide-react'
+import { Goal, Handshake, Clock, Flame, HeartPulse, BrainCircuit } from 'lucide-react'
 import PlayerAvatar from './PlayerAvatar.jsx'
 import SessionRpePanel from './SessionRpePanel.jsx'
-import { getPartidosNpa } from '../db.js'
+import { getPartidosNpa, getConceptosCatalogo } from '../db.js'
 import { computePlayerStats } from '../statsEngine.js'
 import { teamWellnessSnapshot, playerAverageRpe } from '../bienestarStats.js'
 import { formatDateShort, parseISODate } from '../dateUtils.js'
@@ -139,6 +139,45 @@ function TeamWellnessCard({ snap }) {
   )
 }
 
+// Resumen a nivel de equipo de los conceptos de juego individuales — cuánto
+// del vestuario ya domina cada concepto, para ver de un vistazo dónde hace
+// falta insistir más, sin entrar jugador a jugador.
+function ConceptosEquipoCard({ players }) {
+  const catalogo = getConceptosCatalogo()
+  if (catalogo.length === 0) return null
+
+  const filas = catalogo.map((c) => {
+    const dominado = players.filter((p) => p.conceptos?.[c.id] === 'dominado').length
+    const progreso = players.filter((p) => p.conceptos?.[c.id] === 'progreso').length
+    return { c, dominado, progreso, pct: players.length ? Math.round((dominado / players.length) * 100) : 0 }
+  })
+
+  return (
+    <div className="card" style={{ padding: 18 }}>
+      <div className="row" style={{ gap: 10, marginBottom: 16 }}>
+        <div className="icon-chip" style={{ '--chip-color': 'var(--violet-600)' }}>
+          <BrainCircuit size={16} />
+        </div>
+        <h4 style={{ fontSize: 14 }}>Conceptos del equipo</h4>
+      </div>
+      <div className="stack" style={{ gap: 11 }}>
+        {filas.map(({ c, dominado, progreso, pct }) => (
+          <div key={c.id}>
+            <div className="leaderboard-name-row">
+              <span className="leaderboard-name">{c.nombre}</span>
+              <span className="leaderboard-value" style={{ color: 'var(--violet-600)' }}>{dominado}/{players.length}</span>
+            </div>
+            <div className="leaderboard-bar-track">
+              <div className="leaderboard-bar-fill" style={{ width: `${pct}%`, background: 'linear-gradient(90deg, var(--violet-600), #9b7bc9)' }} />
+            </div>
+            {progreso > 0 && <div className="text-muted" style={{ fontSize: 11, marginTop: 2 }}>{progreso} en progreso</div>}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function RosterDashboard({ players }) {
   // Goles/asistencias/minutos vienen de los partidos sincronizados desde NPA
   // Stats (se calculan por nombre, no de un campo manual); el RPE/bienestar
@@ -190,6 +229,7 @@ export default function RosterDashboard({ players }) {
         unit=" RPE"
         emptyText="Aún no hay respuestas de RPE — sincroniza el cuestionario de bienestar."
       />
+      <ConceptosEquipoCard players={players} />
       {wellnessSnap.fecha && (
         <div style={{ gridColumn: '1 / -1' }}>
           <SessionRpePanel fecha={wellnessSnap.fecha} players={players} title="Editar RPE del equipo" onChange={bump} />

@@ -23,6 +23,7 @@ const KEYS = {
   analisisProyectos: 'noia-plan:analisisProyectos',
   analisisEventos: 'noia-plan:analisisEventos',
   modeloJuego: 'noia-plan:modeloJuego',
+  conceptosCatalogo: 'noia-plan:conceptosCatalogo',
 }
 
 function readJSON(key, fallback) {
@@ -206,6 +207,34 @@ export function removePlayer(id) {
   const next = getPlayers().filter((p) => p.id !== id)
   savePlayers(next)
   return next
+}
+
+// ---------- Conceptos de juego (dominio individual por jugador) ----------
+
+// Catálogo compartido por toda la plantilla — cada jugador tiene su propio
+// estado sobre cada concepto (no adquirido / en progreso / dominado), pero
+// la lista de conceptos en sí es una sola, común al equipo.
+export function getConceptosCatalogo() {
+  return readJSON(KEYS.conceptosCatalogo, [])
+}
+
+export function addConceptoCatalogo(nombre) {
+  const next = [...getConceptosCatalogo(), { id: uid(), nombre }]
+  writeJSON(KEYS.conceptosCatalogo, next)
+  return next
+}
+
+export function removeConceptoCatalogo(id) {
+  const next = getConceptosCatalogo().filter((c) => c.id !== id)
+  writeJSON(KEYS.conceptosCatalogo, next)
+  return next
+}
+
+// 'no' | 'progreso' | 'dominado' — ausencia en player.conceptos equivale a 'no'.
+export function setPlayerConcepto(playerId, conceptoId, estado) {
+  const player = getPlayers().find((p) => p.id === playerId)
+  const conceptos = { ...(player?.conceptos || {}), [conceptoId]: estado }
+  return updatePlayer(playerId, { conceptos })
 }
 
 // ---------- Agendas (club y personal, independientes) ----------

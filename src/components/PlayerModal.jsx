@@ -4,12 +4,14 @@ import Modal from './Modal.jsx'
 import PlayerPhotoField from './PlayerPhotoField.jsx'
 import PlayerStatsPanel from './PlayerStatsPanel.jsx'
 import PlayerLoadPanel from './PlayerLoadPanel.jsx'
+import PlayerConceptosPanel from './PlayerConceptosPanel.jsx'
 import { addPlayer, updatePlayer, removePlayer, PUESTOS, LATERALIDADES } from '../db.js'
 
 const TABS = [
   { id: 'datos', label: 'Datos' },
   { id: 'estadisticas', label: 'Estadísticas' },
   { id: 'carga', label: 'Carga y bienestar' },
+  { id: 'conceptos', label: 'Conceptos' },
 ]
 
 export default function PlayerModal({ player, onClose, onSaved }) {
@@ -143,6 +145,8 @@ export default function PlayerModal({ player, onClose, onSaved }) {
           onChange={(v) => setStats((s) => ({ ...s, cargaFisica: v }))}
         />
       )}
+
+      {player.id && tab === 'conceptos' && <PlayerConceptosPanel playerId={player.id} />}
     </Modal>
   )
 }
