@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CalendarDays, Users, ShieldHalf, Sparkles, LayoutGrid, Bandage, BarChart3, ClipboardCheck, HeartPulse, Video, Compass, FolderKanban, Dumbbell } from 'lucide-react'
+import { CalendarDays, Users, ShieldHalf, Sparkles, LayoutGrid, Bandage, BarChart3, ClipboardCheck, HeartPulse, Video, Compass, FolderKanban, Dumbbell, UserSearch } from 'lucide-react'
 import CalendarView from './components/CalendarView.jsx'
 import RosterView from './components/RosterView.jsx'
 import OpponentsView from './components/OpponentsView.jsx'
@@ -13,6 +13,7 @@ import AnalisisView from './components/AnalisisView.jsx'
 import ModeloJuegoView from './components/ModeloJuegoView.jsx'
 import PlaybookView from './components/PlaybookView.jsx'
 import TareasView from './components/TareasView.jsx'
+import MercadoView from './components/MercadoView.jsx'
 import ClubCrest from './components/ClubCrest.jsx'
 import BackupControls from './components/BackupControls.jsx'
 import { seedIfNeeded } from './seedData.js'
@@ -29,6 +30,7 @@ const TABS = [
   { id: 'modelo', label: 'Modelo de juego', icon: Compass },
   { id: 'playbook', label: 'Playbook', icon: FolderKanban },
   { id: 'tareas', label: 'Tareas', icon: Dumbbell },
+  { id: 'mercado', label: 'Mercado', icon: UserSearch },
   { id: 'mesociclos', label: 'Mesociclos', icon: LayoutGrid },
   { id: 'asistente', label: 'Asistente', icon: Sparkles },
 ]
@@ -98,6 +100,7 @@ export default function App() {
         {tab === 'modelo' && <ModeloJuegoView />}
         {tab === 'playbook' && <PlaybookView />}
         {tab === 'tareas' && <TareasView />}
+        {tab === 'mercado' && <MercadoView />}
         {tab === 'mesociclos' && <MesocicloView />}
         {tab === 'asistente' && <AssistantView />}
       </main>
