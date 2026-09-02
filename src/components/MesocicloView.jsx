@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { LayoutGrid } from 'lucide-react'
 import mesocicloPrompt from '../mesocicloPrompt.md?raw'
-import { getMatches, getOpponents, getPlayers, getInjuries } from '../db.js'
+import { getMatches, getOpponents, getPlayers, getInjuries, getModeloJuego } from '../db.js'
 import { getEventsInRange } from '../eventsEngine.js'
 import { toISODate, parseISODate, addDays, formatDateLong } from '../dateUtils.js'
 import PromptWorkbench from './PromptWorkbench.jsx'
@@ -58,6 +58,20 @@ function buildDataSummary({ startDate, endDate }) {
         highlights.forEach((h) => lines.push(`  - Scouting: ${h}`))
       }
     })
+  }
+
+  const modelo = getModeloJuego()
+  const modeloLines = [
+    ['Identidad', modelo.identidad],
+    ['Conceptos de juego', modelo.conceptos],
+    ['Sistema ofensivo', modelo.sistemaOfensivo],
+    ['Sistema defensivo', modelo.sistemaDefensivo],
+    ['Situaciones especiales (ABP)', modelo.situacionesEspeciales],
+  ].filter(([, v]) => v?.trim())
+  if (modeloLines.length > 0) {
+    lines.push('')
+    lines.push('### Modelo de Juego del club (definido por Pablo, no lo inventes)')
+    modeloLines.forEach(([label, v]) => lines.push(`- ${label}: ${v.trim()}`))
   }
 
   return lines.join('\n')

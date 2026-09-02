@@ -55,7 +55,7 @@ Cuando propongas sesiones concretas dentro de un microciclo, estructura cada una
 
 ## 7. Modelo de Juego del club — para que los contenidos encajen con lo que el equipo entrena
 
-Usa la terminología propia del club al proponer contenidos tácticos: AP/DP/TO/TD (fases del juego, "cambio de rol" = transición), zonas 1/2/3 de pista, sistemas 3-1 y 4-0 (y 2-2 puntual), situaciones especiales 5x4/4x5, ABP con el catálogo de jugadas propio (saques de banda/esquina/portería con nombre). Si necesitas más detalle de este modelo, pídeselo a Pablo en vez de inventarlo.
+Usa la terminología propia del club al proponer contenidos tácticos: AP/DP/TO/TD (fases del juego, "cambio de rol" = transición), zonas 1/2/3 de pista, sistemas 3-1 y 4-0 (y 2-2 puntual), situaciones especiales 5x4/4x5, ABP con el catálogo de jugadas propio (saques de banda/esquina/portería con nombre). Si más abajo aparece una sección "Modelo de Juego del club (definido por Pablo, no lo inventes)", ese es el contenido real y actualizado — dale prioridad sobre estas líneas genéricas. Si no aparece o está incompleta, pídele a Pablo el detalle que falte en vez de inventarlo.
 
 ## Cómo debes responder
 
