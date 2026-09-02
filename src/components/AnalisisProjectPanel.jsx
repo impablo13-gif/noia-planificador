@@ -5,8 +5,15 @@ import {
   getAnalisisEventos, addAnalisisEvento, updateAnalisisEvento, removeAnalisisEvento,
   getUltimoEventoFin, updateAnalisisProyecto, uid,
 } from '../db.js'
+import VideoDrawOverlay from './VideoDrawOverlay.jsx'
 
 const PALETTE = ['var(--blue-600)', 'var(--success-600)', 'var(--danger-600)', 'var(--violet-600)', 'var(--warn-600)', 'var(--gold-600)', 'var(--orange-600)', 'var(--red-600)']
+
+// "Pausa enfática": cuando un evento en presentación lleva nota, se puede
+// categorizar para que se resalte con un color distinto en pantalla al
+// llegar a ese clip — igual que en Fixo (momento clave / positivo / corrección).
+const NOTA_TIPO_COLOR = { clave: 'var(--gold-600)', positivo: 'var(--success-600)', correccion: 'var(--danger-600)' }
+const NOTA_TIPO_LABEL = { clave: 'Momento clave', positivo: 'Positivo', correccion: 'Corrección' }
 
 function formatTime(seconds) {
   if (seconds == null || Number.isNaN(seconds)) return '--:--'
@@ -166,8 +173,11 @@ export default function AnalisisProjectPanel({ proyecto, onChanged }) {
   return (
     <div className="stack">
       {videoSrc ? (
-        // eslint-disable-next-line jsx-a11y/media-has-caption
-        <video ref={videoRef} src={videoSrc} controls style={{ width: '100%', borderRadius: 'var(--radius-md)', background: '#000', maxHeight: 480 }} />
+        <div style={{ position: 'relative' }}>
+          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+          <video ref={videoRef} src={videoSrc} controls style={{ width: '100%', borderRadius: 'var(--radius-md)', background: '#000', maxHeight: 480, display: 'block' }} />
+          <VideoDrawOverlay videoRef={videoRef} />
+        </div>
       ) : (
         <div className="banner banner-warn">Este proyecto todavía no tiene vídeo cargado — edítalo para añadir uno.</div>
       )}
@@ -194,6 +204,20 @@ export default function AnalisisProjectPanel({ proyecto, onChanged }) {
               </button>
             </div>
           </div>
+          {clipsPresentacion[clipIndex].nota && (
+            <div
+              className="banner"
+              style={{
+                marginTop: 10,
+                background: NOTA_TIPO_COLOR[clipsPresentacion[clipIndex].notaTipo] || 'var(--ink-700)',
+                color: '#fff',
+                fontWeight: 600,
+              }}
+            >
+              {NOTA_TIPO_LABEL[clipsPresentacion[clipIndex].notaTipo] && <strong>{NOTA_TIPO_LABEL[clipsPresentacion[clipIndex].notaTipo]}: </strong>}
+              {clipsPresentacion[clipIndex].nota}
+            </div>
+          )}
         </div>
       )}
 
@@ -313,7 +337,15 @@ function EventoRow({ evento, players, onSeek, onChanged, onToggleEnPresentacion 
   const [nota, setNota] = useState(evento.nota || '')
 
   function handleSaveNota() {
-    if (nota !== (evento.nota || '')) updateAnalisisEvento(evento.id, { nota })
+    if (nota !== (evento.nota || '')) {
+      updateAnalisisEvento(evento.id, { nota })
+      onChanged()
+    }
+  }
+
+  function handleNotaTipo(tipo) {
+    updateAnalisisEvento(evento.id, { notaTipo: evento.notaTipo === tipo ? null : tipo })
+    onChanged()
   }
 
   function handleJugador(e) {
@@ -348,6 +380,23 @@ function EventoRow({ evento, players, onSeek, onChanged, onToggleEnPresentacion 
         placeholder="Nota…"
         style={{ flex: 1, fontSize: 12.5, padding: '4px 6px' }}
       />
+      {nota && (
+        <div className="row" style={{ gap: 3 }} title="Tipo de pausa enfática en la presentación">
+          {Object.entries(NOTA_TIPO_LABEL).map(([tipo, label]) => (
+            <button
+              key={tipo}
+              type="button"
+              onClick={() => handleNotaTipo(tipo)}
+              title={label}
+              style={{
+                width: 14, height: 14, borderRadius: '50%', padding: 0, cursor: 'pointer',
+                background: evento.notaTipo === tipo ? NOTA_TIPO_COLOR[tipo] : 'transparent',
+                border: `2px solid ${NOTA_TIPO_COLOR[tipo]}`,
+              }}
+            />
+          ))}
+        </div>
+      )}
       <button type="button" className="btn btn-ghost btn-sm btn-icon" onClick={() => { removeAnalisisEvento(evento.id); onChanged() }} title="Eliminar">
         <Trash2 size={13} color="var(--danger-600)" />
       </button>
