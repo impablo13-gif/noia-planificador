@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Save, Trash2 } from 'lucide-react'
 import Modal from './Modal.jsx'
+import FileDrop from './FileDrop.jsx'
 import PlayerPhotoField from './PlayerPhotoField.jsx'
 import PlayerStatsPanel from './PlayerStatsPanel.jsx'
 import PlayerLoadPanel from './PlayerLoadPanel.jsx'
@@ -12,6 +13,7 @@ const TABS = [
   { id: 'estadisticas', label: 'Estadísticas' },
   { id: 'carga', label: 'Carga y bienestar' },
   { id: 'conceptos', label: 'Conceptos' },
+  { id: 'club', label: 'Ficha de club' },
 ]
 
 export default function PlayerModal({ player, onClose, onSaved }) {
@@ -26,10 +28,18 @@ export default function PlayerModal({ player, onClose, onSaved }) {
   const [fotoFileId, setFotoFileId] = useState(player.fotoFileId || null)
   const [notas, setNotas] = useState(player.notas || '')
   const [stats, setStats] = useState({ partidos: 0, goles: 0, asistencias: 0, amarillas: 0, rojas: 0, minutos: 0, cargaFisica: 0, ...player.stats })
+  const [tutorNombre, setTutorNombre] = useState(player.tutorNombre || '')
+  const [tutorTelefono, setTutorTelefono] = useState(player.tutorTelefono || '')
+  const [tutorEmail, setTutorEmail] = useState(player.tutorEmail || '')
+  const [talla, setTalla] = useState(player.talla || '')
+  const [fichaFederativaFileId, setFichaFederativaFileId] = useState(player.fichaFederativaFileId || null)
 
   function handleSave() {
     if (!nombre.trim()) return
-    const patch = { nombre: nombre.trim(), dorsal, posicion, equipo: equipo.trim(), lateralidad, clubProcedencia: clubProcedencia.trim(), fechaNacimiento, fotoFileId, notas, stats }
+    const patch = {
+      nombre: nombre.trim(), dorsal, posicion, equipo: equipo.trim(), lateralidad, clubProcedencia: clubProcedencia.trim(), fechaNacimiento, fotoFileId, notas, stats,
+      tutorNombre: tutorNombre.trim(), tutorTelefono: tutorTelefono.trim(), tutorEmail: tutorEmail.trim(), talla: talla.trim(), fichaFederativaFileId,
+    }
     if (player.id) {
       updatePlayer(player.id, patch)
     } else {
@@ -147,6 +157,39 @@ export default function PlayerModal({ player, onClose, onSaved }) {
       )}
 
       {player.id && tab === 'conceptos' && <PlayerConceptosPanel playerId={player.id} />}
+
+      {player.id && tab === 'club' && (
+        <div className="stack">
+          <p className="section-hint" style={{ marginTop: 0 }}>Datos de contacto y documentación pensados para menores de edad — no salen en ningún informe compartido con otros equipos.</p>
+
+          <h4 style={{ fontSize: 13.5, color: 'var(--ink-700)' }}>Tutor / madre o padre</h4>
+          <div className="grid cols-2">
+            <div className="field">
+              <label className="field__label">Nombre <span className="field__optional">(opcional)</span></label>
+              <input type="text" value={tutorNombre} onChange={(e) => setTutorNombre(e.target.value)} />
+            </div>
+            <div className="field">
+              <label className="field__label">Teléfono <span className="field__optional">(opcional)</span></label>
+              <input type="tel" value={tutorTelefono} onChange={(e) => setTutorTelefono(e.target.value)} />
+            </div>
+          </div>
+          <div className="field">
+            <label className="field__label">Email <span className="field__optional">(opcional)</span></label>
+            <input type="email" value={tutorEmail} onChange={(e) => setTutorEmail(e.target.value)} />
+          </div>
+
+          <hr className="divider" />
+          <h4 style={{ fontSize: 13.5, color: 'var(--ink-700)' }}>Ficha federativa</h4>
+          <div className="field">
+            <label className="field__label">Talla de equipación <span className="field__optional">(opcional)</span></label>
+            <input type="text" value={talla} onChange={(e) => setTalla(e.target.value)} placeholder="Ej. M, 14 años…" style={{ maxWidth: 160 }} />
+          </div>
+          <div className="field">
+            <label className="field__label">Documento (licencia, ficha RFEF…)</label>
+            <FileDrop fileId={fichaFederativaFileId} onChange={setFichaFederativaFileId} accept=".pdf,image/*" label="Subir documento" />
+          </div>
+        </div>
+      )}
     </Modal>
   )
 }
