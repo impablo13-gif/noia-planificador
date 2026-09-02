@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { Save, Trash2, MapPin, Phone, User } from 'lucide-react'
+import { Save, Trash2, MapPin, Phone, User, Video, Plus, ChevronRight } from 'lucide-react'
 import Modal from './Modal.jsx'
 import ShieldPhotoField from './ShieldPhotoField.jsx'
-import { updateOpponent, removeOpponent, addOpponent } from '../db.js'
+import { updateOpponent, removeOpponent, addOpponent, getAnalisisProyectos, addAnalisisProyecto, getAnalisisEventos } from '../db.js'
 
-export default function OpponentModal({ opponent, onClose, onSaved }) {
+export default function OpponentModal({ opponent, onClose, onSaved, onGoToAnalisis }) {
   const [name, setName] = useState(opponent.name || '')
   const [siglas, setSiglas] = useState(opponent.siglas || '')
   const [shieldFileId, setShieldFileId] = useState(opponent.shieldFileId || null)
@@ -33,6 +33,14 @@ export default function OpponentModal({ opponent, onClose, onSaved }) {
   function handleDelete() {
     if (opponent.id) removeOpponent(opponent.id)
     onSaved()
+  }
+
+  const proyectosVideo = opponent.id ? getAnalisisProyectos().filter((p) => p.opponentId === opponent.id) : []
+
+  function handleNuevoProyectoVideo() {
+    const next = addAnalisisProyecto({ nombre: `Scouting — ${opponent.name}`, tipo: 'rival', opponentId: opponent.id })
+    const created = next[next.length - 1]
+    onGoToAnalisis?.(created.id)
   }
 
   return (
@@ -94,6 +102,42 @@ export default function OpponentModal({ opponent, onClose, onSaved }) {
               )}
             </div>
           </div>
+        )}
+
+        {opponent.id && (
+          <>
+            <hr className="divider" />
+            <div className="row spread" style={{ marginBottom: 4 }}>
+              <h4 style={{ fontSize: 13.5, color: 'var(--ink-700)', margin: 0 }}>Análisis de vídeo</h4>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={handleNuevoProyectoVideo}>
+                <Plus size={13} />
+                Nuevo proyecto
+              </button>
+            </div>
+            {proyectosVideo.length === 0 ? (
+              <p className="section-hint" style={{ marginTop: 0 }}>Sin vídeo etiquetado de este rival todavía.</p>
+            ) : (
+              <div className="stack" style={{ gap: 4, marginBottom: 4 }}>
+                {proyectosVideo.map((p) => {
+                  const n = getAnalisisEventos(p.id).length
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      className="match-row"
+                      style={{ width: '100%', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+                      onClick={() => onGoToAnalisis?.(p.id)}
+                    >
+                      <Video size={14} color="var(--red-600)" />
+                      <span style={{ flex: 1 }}>{p.nombre}</span>
+                      <span className="text-muted">{n} evento{n === 1 ? '' : 's'}</span>
+                      <ChevronRight size={14} color="var(--ink-300)" />
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </>
         )}
 
         <hr className="divider" />

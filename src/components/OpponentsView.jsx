@@ -5,7 +5,7 @@ import OpponentModal from './OpponentModal.jsx'
 import PlayerAvatar from './PlayerAvatar.jsx'
 import PageHeader from './PageHeader.jsx'
 
-export default function OpponentsView({ initialOpponentId, onConsumeInitial }) {
+export default function OpponentsView({ initialOpponentId, onConsumeInitial, onGoToAnalisis }) {
   const [refreshKey, setRefreshKey] = useState(0)
   const [editing, setEditing] = useState(null)
   const opponents = getOpponents()
@@ -60,6 +60,7 @@ export default function OpponentsView({ initialOpponentId, onConsumeInitial }) {
             setEditing(null)
             bump()
           }}
+          onGoToAnalisis={onGoToAnalisis}
         />
       )}
     </div>

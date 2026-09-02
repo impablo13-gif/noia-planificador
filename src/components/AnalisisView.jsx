@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Video, Plus, ArrowLeft, Pencil, ShieldHalf, Users } from 'lucide-react'
 import { getAnalisisProyectos, getOpponents, getAnalisisEventos } from '../db.js'
 import PageHeader from './PageHeader.jsx'
 import AnalisisProjectModal from './AnalisisProjectModal.jsx'
 import AnalisisProjectPanel from './AnalisisProjectPanel.jsx'
 
-export default function AnalisisView() {
+export default function AnalisisView({ initialProyectoId, onConsumeInitial }) {
   const [refreshKey, setRefreshKey] = useState(0)
   const [editing, setEditing] = useState(null)
   const [openId, setOpenId] = useState(null)
@@ -13,6 +13,14 @@ export default function AnalisisView() {
   const proyectos = getAnalisisProyectos()
   const opponents = getOpponents()
   const open = openId ? proyectos.find((p) => p.id === openId) : null
+
+  useEffect(() => {
+    if (!initialProyectoId) return
+    const found = proyectos.find((p) => p.id === initialProyectoId)
+    if (found) setOpenId(found.id)
+    onConsumeInitial?.()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialProyectoId])
 
   function bump() {
     setRefreshKey((k) => k + 1)

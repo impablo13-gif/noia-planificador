@@ -37,10 +37,16 @@ export default function App() {
   })
   const [tab, setTab] = useState('calendario')
   const [focusOpponentId, setFocusOpponentId] = useState(null)
+  const [focusAnalisisProyectoId, setFocusAnalisisProyectoId] = useState(null)
 
   function goToOpponent(opponentId) {
     setFocusOpponentId(opponentId)
     setTab('rivales')
+  }
+
+  function goToAnalisis(proyectoId) {
+    setFocusAnalisisProyectoId(proyectoId)
+    setTab('analisis')
   }
 
   return (
@@ -73,9 +79,15 @@ export default function App() {
         {tab === 'bienestar' && <BienestarView />}
         {tab === 'lesiones' && <InjuriesView />}
         {tab === 'estadisticas' && <EstadisticasView />}
-        {tab === 'analisis' && <AnalisisView />}
+        {tab === 'analisis' && (
+          <AnalisisView initialProyectoId={focusAnalisisProyectoId} onConsumeInitial={() => setFocusAnalisisProyectoId(null)} />
+        )}
         {tab === 'rivales' && (
-          <OpponentsView initialOpponentId={focusOpponentId} onConsumeInitial={() => setFocusOpponentId(null)} />
+          <OpponentsView
+            initialOpponentId={focusOpponentId}
+            onConsumeInitial={() => setFocusOpponentId(null)}
+            onGoToAnalisis={goToAnalisis}
+          />
         )}
         {tab === 'mesociclos' && <MesocicloView />}
         {tab === 'asistente' && <AssistantView />}
