@@ -24,6 +24,10 @@ const KEYS = {
   analisisEventos: 'noia-plan:analisisEventos',
   modeloJuego: 'noia-plan:modeloJuego',
   conceptosCatalogo: 'noia-plan:conceptosCatalogo',
+  playbookCarpetas: 'noia-plan:playbookCarpetas',
+  playbookJugadas: 'noia-plan:playbookJugadas',
+  tareas: 'noia-plan:tareas',
+  mercadoJugadores: 'noia-plan:mercadoJugadores',
 }
 
 function readJSON(key, fallback) {
@@ -582,6 +586,107 @@ export function addModeloJuegoVideo(video) {
 export function removeModeloJuegoVideo(id) {
   const modelo = getModeloJuego()
   return updateModeloJuego({ videos: modelo.videos.filter((v) => v.id !== id) })
+}
+
+// ---------- Playbook (jugadas organizadas en carpetas) ----------
+
+export function getPlaybookCarpetas() {
+  return readJSON(KEYS.playbookCarpetas, [])
+}
+
+export function addPlaybookCarpeta(nombre) {
+  const next = [...getPlaybookCarpetas(), { id: uid(), nombre }]
+  writeJSON(KEYS.playbookCarpetas, next)
+  return next
+}
+
+export function removePlaybookCarpeta(id) {
+  const next = getPlaybookCarpetas().filter((c) => c.id !== id)
+  writeJSON(KEYS.playbookCarpetas, next)
+  // Las jugadas de la carpeta borrada no se pierden: pasan a "sin carpeta"
+  // en vez de desaparecer, por si Pablo la borró sin querer vaciarlas.
+  const jugadas = getPlaybookJugadas().map((j) => (j.carpetaId === id ? { ...j, carpetaId: null } : j))
+  writeJSON(KEYS.playbookJugadas, jugadas)
+  return next
+}
+
+export function getPlaybookJugadas(carpetaId) {
+  const all = readJSON(KEYS.playbookJugadas, [])
+  return carpetaId === undefined ? all : all.filter((j) => j.carpetaId === carpetaId)
+}
+
+export function addPlaybookJugada(jugada) {
+  const next = [...getPlaybookJugadas(), { id: uid(), carpetaId: null, videoSourceType: 'file', videoFileId: null, videoUrl: '', createdAt: Date.now(), ...jugada }]
+  writeJSON(KEYS.playbookJugadas, next)
+  return next
+}
+
+export function updatePlaybookJugada(id, patch) {
+  const next = getPlaybookJugadas().map((j) => (j.id === id ? { ...j, ...patch } : j))
+  writeJSON(KEYS.playbookJugadas, next)
+  return next
+}
+
+export function removePlaybookJugada(id) {
+  const jugada = getPlaybookJugadas().find((j) => j.id === id)
+  const next = getPlaybookJugadas().filter((j) => j.id !== id)
+  writeJSON(KEYS.playbookJugadas, next)
+  if (jugada?.videoSourceType === 'file' && jugada.videoFileId) deleteFile(jugada.videoFileId)
+  return next
+}
+
+// ---------- Tareas (biblioteca de ejercicios de entrenamiento) ----------
+
+export const TAREA_MOMENTOS = ['Calentamiento', 'Principal', 'Vuelta a la calma']
+
+export function getTareas() {
+  return readJSON(KEYS.tareas, [])
+}
+
+export function addTarea(tarea) {
+  const next = [...getTareas(), { id: uid(), nombre: '', contenido: '', momento: 'Principal', descripcion: '', fotoFileId: null, videoUrl: '', createdAt: Date.now(), ...tarea }]
+  writeJSON(KEYS.tareas, next)
+  return next
+}
+
+export function updateTarea(id, patch) {
+  const next = getTareas().map((t) => (t.id === id ? { ...t, ...patch } : t))
+  writeJSON(KEYS.tareas, next)
+  return next
+}
+
+export function removeTarea(id) {
+  const tarea = getTareas().find((t) => t.id === id)
+  const next = getTareas().filter((t) => t.id !== id)
+  writeJSON(KEYS.tareas, next)
+  if (tarea?.fotoFileId) deleteFile(tarea.fotoFileId)
+  return next
+}
+
+// ---------- Mercado de jugadores (seguimiento de fichajes externos) ----------
+
+export function getMercadoJugadores() {
+  return readJSON(KEYS.mercadoJugadores, [])
+}
+
+export function addMercadoJugador(jugador) {
+  const next = [...getMercadoJugadores(), { id: uid(), nombre: '', clubActual: '', posicion: PUESTOS[0], edad: '', notas: '', contacto: '', fotoFileId: null, createdAt: Date.now(), ...jugador }]
+  writeJSON(KEYS.mercadoJugadores, next)
+  return next
+}
+
+export function updateMercadoJugador(id, patch) {
+  const next = getMercadoJugadores().map((j) => (j.id === id ? { ...j, ...patch } : j))
+  writeJSON(KEYS.mercadoJugadores, next)
+  return next
+}
+
+export function removeMercadoJugador(id) {
+  const jugador = getMercadoJugadores().find((j) => j.id === id)
+  const next = getMercadoJugadores().filter((j) => j.id !== id)
+  writeJSON(KEYS.mercadoJugadores, next)
+  if (jugador?.fotoFileId) deleteFile(jugador.fotoFileId)
+  return next
 }
 
 // ---------- Escudo del club (cabecera) ----------
