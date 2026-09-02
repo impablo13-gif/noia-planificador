@@ -27,7 +27,7 @@ function formatTime(seconds) {
 // nuevo para cerrar) sin interrumpir la reproducción. La lista de eventos de
 // abajo permite saltar a cada uno, añadir una nota o el jugador implicado, y
 // borrarlo.
-export default function AnalisisProjectPanel({ proyecto, onChanged }) {
+export default function AnalisisProjectPanel({ proyecto, onChanged, initialEventId }) {
   const videoRef = useRef(null)
   const [videoSrc, setVideoSrc] = useState(null)
   const [activeTag, setActiveTag] = useState(null) // { botonId, startTime }
@@ -101,6 +101,25 @@ export default function AnalisisProjectPanel({ proyecto, onChanged }) {
     videoRef.current.currentTime = time
     videoRef.current.play()
   }
+
+  // Al entrar desde la Videoteca con un clip concreto elegido, salta a él en
+  // cuanto el vídeo esté listo para aceptar un currentTime (si aún no lo
+  // está, currentTime se ignora en silencio).
+  useEffect(() => {
+    if (!initialEventId || !videoSrc || !videoRef.current) return
+    const ev = getAnalisisEventos(proyecto.id).find((e) => e.id === initialEventId)
+    if (!ev) return
+    const v = videoRef.current
+    if (v.readyState >= 1) {
+      handleSeek(ev.startTime)
+    } else {
+      const onReady = () => handleSeek(ev.startTime)
+      v.addEventListener('loadedmetadata', onReady, { once: true })
+      // eslint-disable-next-line consistent-return
+      return () => v.removeEventListener('loadedmetadata', onReady)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialEventId, videoSrc])
 
   function handleContinuar() {
     const t = getUltimoEventoFin(proyecto.id)
