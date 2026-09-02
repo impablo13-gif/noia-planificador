@@ -1819,4 +1819,17 @@ button.match-row:hover {
     border: 1px solid #ccc;
     break-inside: avoid;
   }
+  .modal-backdrop {
+    position: static;
+    background: none;
+    padding: 0;
+  }
+  .modal {
+    max-width: none !important;
+    box-shadow: none;
+    border: none;
+  }
+  .modal__head button {
+    display: none !important;
+  }
 }

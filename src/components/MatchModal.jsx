@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Save, Trash2, House, Plane, ShieldHalf, Goal, ShieldAlert, FileText, ExternalLink, Flame } from 'lucide-react'
+import { Save, Trash2, House, Plane, ShieldHalf, Goal, ShieldAlert, FileText, ExternalLink, Flame, ClipboardList } from 'lucide-react'
 import Modal from './Modal.jsx'
 import FileDrop from './FileDrop.jsx'
 import ShieldPhotoField from './ShieldPhotoField.jsx'
 import PlayerAvatar from './PlayerAvatar.jsx'
 import SessionRpePanel from './SessionRpePanel.jsx'
 import MatchTacticalGroupsCard from './MatchTacticalGroupsCard.jsx'
+import MatchPlanModal from './MatchPlanModal.jsx'
 import { updateMatch, removeMatch, addMatch, addOpponent, getPartidosNpa, getPlayers, getFile, removePartidoNpa, getMatches } from '../db.js'
 import { matchPlayerByName } from '../statsEngine.js'
 import { rpeForDate } from '../bienestarStats.js'
@@ -120,6 +121,7 @@ export default function MatchModal({ match, opponents, onClose, onSaved, onGoToR
   const [reportFileId, setReportFileId] = useState(match.reportFileId || null)
   const [status, setStatus] = useState(match.status || 'pendiente')
   const [gruposTacticos, setGruposTacticos] = useState(match.gruposTacticos || [])
+  const [showPlan, setShowPlan] = useState(false)
 
   const opponent = opponents.find((o) => o.id === opponentId)
   const isLiga = match.competition === 'Liga'
@@ -176,6 +178,12 @@ export default function MatchModal({ match, opponents, onClose, onSaved, onGoToR
             <button type="button" className="btn btn-danger" onClick={handleDelete}>
               <Trash2 size={14} />
               Eliminar
+            </button>
+          )}
+          {match.id && (
+            <button type="button" className="btn btn-secondary" onClick={() => setShowPlan(true)}>
+              <ClipboardList size={14} />
+              Plan de partido
             </button>
           )}
           <button type="button" className="btn btn-secondary" onClick={onClose}>Cerrar</button>
@@ -365,6 +373,15 @@ export default function MatchModal({ match, opponents, onClose, onSaved, onGoToR
           <FileDrop fileId={reportFileId} onChange={setReportFileId} accept=".pdf,image/*,.doc,.docx" label="Subir informe" />
         </div>
       </div>
+
+      {showPlan && (
+        <MatchPlanModal
+          match={{ ...match, gruposTacticos, observaciones }}
+          opponent={opponent}
+          players={getPlayers().filter((p) => p.equipo === equipo)}
+          onClose={() => setShowPlan(false)}
+        />
+      )}
     </Modal>
   )
 }
