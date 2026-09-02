@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Play, Trash2, SkipForward, Plus, X, Settings2, Repeat, Star, ListVideo, ChevronLeft, ChevronRight, LogOut } from 'lucide-react'
+import { Play, Trash2, SkipForward, Plus, X, Settings2, Repeat, Star, ListVideo, ChevronLeft, ChevronRight, LogOut, Download } from 'lucide-react'
 import {
   getFile, getPlayers,
   getAnalisisEventos, addAnalisisEvento, updateAnalisisEvento, removeAnalisisEvento,
@@ -38,12 +38,29 @@ export default function AnalisisProjectPanel({ proyecto, onChanged, initialEvent
   const [filtroVista, setFiltroVista] = useState('todos') // 'todos' | 'principal' | 'espejo'
   const [presentando, setPresentando] = useState(false)
   const [clipIndex, setClipIndex] = useState(0)
+  const [narracionUrl, setNarracionUrl] = useState(null)
   const players = getPlayers()
+
+  function handleRecorded(url) {
+    setNarracionUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev)
+      return url
+    })
+  }
+
+  function discardNarracion() {
+    if (narracionUrl) URL.revokeObjectURL(narracionUrl)
+    setNarracionUrl(null)
+  }
 
   useEffect(() => {
     let cancelled = false
     let objectUrl = null
     setActiveTag(null)
+    setNarracionUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev)
+      return null
+    })
     if (proyecto.videoSourceType === 'url') {
       setVideoSrc(proyecto.videoUrl || null)
       return
@@ -195,10 +212,31 @@ export default function AnalisisProjectPanel({ proyecto, onChanged, initialEvent
         <div style={{ position: 'relative' }}>
           {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
           <video ref={videoRef} src={videoSrc} controls style={{ width: '100%', borderRadius: 'var(--radius-md)', background: '#000', maxHeight: 480, display: 'block' }} />
-          <VideoDrawOverlay videoRef={videoRef} />
+          <VideoDrawOverlay videoRef={videoRef} onRecorded={handleRecorded} />
         </div>
       ) : (
         <div className="banner banner-warn">Este proyecto todavía no tiene vídeo cargado — edítalo para añadir uno.</div>
+      )}
+
+      {narracionUrl && (
+        <div className="card">
+          <div className="row" style={{ gap: 9, marginBottom: 8 }}>
+            <div className="icon-chip" style={{ '--chip-color': 'var(--red-600)' }}><Download size={15} /></div>
+            <h4 style={{ margin: 0, fontSize: 14 }}>Grabación narrada lista</h4>
+          </div>
+          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+          <video src={narracionUrl} controls style={{ width: '100%', maxHeight: 320, borderRadius: 'var(--radius-md)', background: '#000', marginBottom: 10 }} />
+          <div className="row" style={{ gap: 8 }}>
+            <a href={narracionUrl} download={`narracion-${proyecto.nombre}.webm`} className="btn btn-primary btn-sm">
+              <Download size={13} />
+              Descargar
+            </a>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={discardNarracion}>
+              <X size={13} />
+              Descartar
+            </button>
+          </div>
+        </div>
       )}
 
       {presentando && clipsPresentacion[clipIndex] && (

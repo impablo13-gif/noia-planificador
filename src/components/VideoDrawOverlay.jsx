@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Pencil, Eraser, Undo2 } from 'lucide-react'
+import { Pencil, Eraser, Undo2, Mic, Square } from 'lucide-react'
 
 const COLORS = ['#ffffff', '#f2d51a', '#e0670f', '#c21f26', '#2f7a4f', '#1e5799']
 
@@ -7,12 +7,20 @@ const COLORS = ['#ffffff', '#f2d51a', '#e0670f', '#c21f26', '#2f7a4f', '#1e5799'
 // el vídeo, dibujas, sigues) — no se guarda nada, es efímera a propósito,
 // como la "pizarra rápida" de Fixo. Se limpia sola en cada play/seek para no
 // dejar trazos de una jugada pegados sobre la siguiente.
-export default function VideoDrawOverlay({ videoRef }) {
+export default function VideoDrawOverlay({ videoRef, onRecorded }) {
   const canvasRef = useRef(null)
   const strokesRef = useRef([]) // [{ color, points: [{x,y}] }]
   const drawingRef = useRef(false)
   const [active, setActive] = useState(false)
   const [color, setColor] = useState(COLORS[0])
+  const outputCanvasRef = useRef(null)
+  const mediaRecorderRef = useRef(null)
+  const chunksRef = useRef([])
+  const rafRef = useRef(null)
+  const micStreamRef = useRef(null)
+  const [recording, setRecording] = useState(false)
+  const recordingRef = useRef(false)
+  const [recordError, setRecordError] = useState('')
 
   function resizeCanvas() {
     const video = videoRef.current
@@ -46,9 +54,92 @@ export default function VideoDrawOverlay({ videoRef }) {
     redraw()
   }
 
+  // El vídeo se pone en marcha con play() al iniciar una grabación narrada —
+  // sin esta guarda, el propio arranque borraría de golpe la pizarra que se
+  // quería narrar.
+  function clearAllUnlessRecording() {
+    if (recordingRef.current) return
+    clearAll()
+  }
+
   function undoLast() {
     strokesRef.current.pop()
     redraw()
+  }
+
+  // Graba voz + pizarra en directo sobre el vídeo, mezclando en un canvas
+  // oculto el fotograma del vídeo con el dibujo superpuesto, y capturando
+  // ese canvas + el micrófono como un único stream — igual que la "grabación
+  // narrada" de Fixo, para mandar correcciones individuales sin estar
+  // delante del jugador. Solo funciona con vídeos del mismo origen (locales
+  // o de la nube propia); un vídeo externo sin CORS abierto "mancha" el
+  // canvas y el navegador bloquea la captura por seguridad.
+  async function startRecording() {
+    setRecordError('')
+    const video = videoRef.current
+    if (!video) return
+    let micStream
+    try {
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    } catch {
+      setRecordError('No se pudo acceder al micrófono — revisa los permisos del navegador.')
+      return
+    }
+    micStreamRef.current = micStream
+
+    const outCanvas = outputCanvasRef.current
+    outCanvas.width = video.videoWidth || video.clientWidth || 640
+    outCanvas.height = video.videoHeight || video.clientHeight || 360
+    const ctx = outCanvas.getContext('2d')
+
+    function drawFrame() {
+      try {
+        ctx.drawImage(video, 0, 0, outCanvas.width, outCanvas.height)
+        if (canvasRef.current) ctx.drawImage(canvasRef.current, 0, 0, outCanvas.width, outCanvas.height)
+      } catch {
+        // Fotograma no disponible todavía (vídeo aún cargando) — se reintenta en el siguiente frame.
+      }
+      rafRef.current = requestAnimationFrame(drawFrame)
+    }
+    drawFrame()
+
+    let recorder
+    try {
+      const videoTrack = outCanvas.captureStream(30).getVideoTracks()[0]
+      const combined = new MediaStream([videoTrack, ...micStream.getAudioTracks()])
+      const mimeType = ['video/webm;codecs=vp9,opus', 'video/webm'].find((t) => MediaRecorder.isTypeSupported(t)) || ''
+      recorder = new MediaRecorder(combined, mimeType ? { mimeType } : undefined)
+    } catch {
+      setRecordError('Este vídeo no se puede grabar (origen externo sin permiso de uso compartido). Funciona con vídeos subidos como archivo local.')
+      cancelAnimationFrame(rafRef.current)
+      micStream.getTracks().forEach((t) => t.stop())
+      return
+    }
+
+    chunksRef.current = []
+    recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data) }
+    recorder.onstop = () => {
+      const blob = new Blob(chunksRef.current, { type: 'video/webm' })
+      onRecorded?.(URL.createObjectURL(blob))
+    }
+    recorder.onerror = () => {
+      setRecordError('La grabación se ha interrumpido (posible restricción de origen del vídeo).')
+    }
+    recorder.start()
+    mediaRecorderRef.current = recorder
+    setActive(true)
+    setRecording(true)
+    recordingRef.current = true
+    video.play()
+  }
+
+  function stopRecording() {
+    mediaRecorderRef.current?.stop()
+    if (rafRef.current) cancelAnimationFrame(rafRef.current)
+    micStreamRef.current?.getTracks().forEach((t) => t.stop())
+    videoRef.current?.pause()
+    setRecording(false)
+    recordingRef.current = false
   }
 
   useEffect(() => {
@@ -56,15 +147,24 @@ export default function VideoDrawOverlay({ videoRef }) {
     window.addEventListener('resize', resizeCanvas)
     const video = videoRef.current
     video?.addEventListener('loadedmetadata', resizeCanvas)
-    video?.addEventListener('play', clearAll)
-    video?.addEventListener('seeked', clearAll)
+    video?.addEventListener('play', clearAllUnlessRecording)
+    video?.addEventListener('seeked', clearAllUnlessRecording)
     return () => {
       window.removeEventListener('resize', resizeCanvas)
       video?.removeEventListener('loadedmetadata', resizeCanvas)
-      video?.removeEventListener('play', clearAll)
-      video?.removeEventListener('seeked', clearAll)
+      video?.removeEventListener('play', clearAllUnlessRecording)
+      video?.removeEventListener('seeked', clearAllUnlessRecording)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Si se cambia de proyecto o se cierra la vista a media grabación, corta
+  // limpio: para el micrófono, el bucle de dibujo y libera la última
+  // grabación en memoria.
+  useEffect(() => () => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current)
+    micStreamRef.current?.getTracks().forEach((t) => t.stop())
+    if (mediaRecorderRef.current?.state === 'recording') mediaRecorderRef.current.stop()
   }, [])
 
   function pointFromEvent(e) {
@@ -128,7 +228,24 @@ export default function VideoDrawOverlay({ videoRef }) {
           <Pencil size={13} />
           {active ? 'Dibujando' : 'Pizarra'}
         </button>
+        {recording ? (
+          <button type="button" className="btn btn-sm" onClick={stopRecording} style={{ color: '#fff', background: 'var(--red-600)', borderColor: '#fff' }}>
+            <Square size={13} />
+            ● REC — Detener
+          </button>
+        ) : (
+          <button type="button" className="btn btn-ghost btn-sm" onClick={startRecording} style={{ color: '#fff' }} title="Grabar narración (voz + pizarra)">
+            <Mic size={13} />
+            Narrar
+          </button>
+        )}
       </div>
+      {recordError && (
+        <div className="banner banner-danger" style={{ position: 'absolute', bottom: 8, left: 8, right: 8, pointerEvents: 'auto', fontSize: 12 }}>
+          {recordError}
+        </div>
+      )}
+      <canvas ref={outputCanvasRef} style={{ position: 'absolute', left: -9999, top: 0 }} />
     </div>
   )
 }
