@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { Sparkles } from 'lucide-react'
 import assistantPrompt from '../assistantPrompt.md?raw'
-import { getMatches, getOpponents, getPlayers, getInjuries, agendaClub, agendaPersonal } from '../db.js'
+import { getMatches, getOpponents, getPlayers, getInjuries, agendaClub, agendaPersonal, getModeloJuego, getConceptosCatalogo } from '../db.js'
 import { toISODate, formatDateLong } from '../dateUtils.js'
 import PromptWorkbench from './PromptWorkbench.jsx'
 import PageHeader from './PageHeader.jsx'
@@ -39,8 +39,26 @@ function buildDataSummary() {
         lines.push('- (Aún no hay scouting guardado de este rival en la pestaña Rivales.)')
       }
     }
+    const grupos = nextMatch.gruposTacticos || []
+    if (grupos.length > 0) {
+      lines.push(`- Grupos tácticos ya definidos para este partido: ${grupos.map((g) => g.nombre).join(', ')}.`)
+    }
   } else {
     lines.push('- No hay próximos partidos programados en el calendario.')
+  }
+
+  const modelo = getModeloJuego()
+  const modeloLines = [
+    ['Identidad', modelo.identidad],
+    ['Conceptos de juego', modelo.conceptos],
+    ['Sistema ofensivo', modelo.sistemaOfensivo],
+    ['Sistema defensivo', modelo.sistemaDefensivo],
+    ['Situaciones especiales (ABP)', modelo.situacionesEspeciales],
+  ].filter(([, v]) => v?.trim())
+  if (modeloLines.length > 0) {
+    lines.push('')
+    lines.push('### Modelo de Juego del club (definido por Pablo, no lo inventes)')
+    modeloLines.forEach(([label, v]) => lines.push(`- ${label}: ${v.trim()}`))
   }
 
   lines.push('')
@@ -64,6 +82,17 @@ function buildDataSummary() {
         const p = players.find((pl) => pl.id === i.playerId)
         return `${p ? p.nombre : '—'} (${i.zona}, ${i.tipo})`
       }).join(', ')}`)
+    }
+
+    const catalogo = getConceptosCatalogo()
+    if (catalogo.length > 0 && players.length > 0) {
+      const flojos = catalogo
+        .map((c) => ({ c, dominado: players.filter((p) => p.conceptos?.[c.id] === 'dominado').length }))
+        .filter(({ dominado }) => dominado / players.length < 0.5)
+        .map(({ c, dominado }) => `${c.nombre} (${dominado}/${players.length})`)
+      if (flojos.length > 0) {
+        lines.push(`- Conceptos de juego que menos de la mitad del equipo domina todavía: ${flojos.join(', ')}.`)
+      }
     }
   }
 
