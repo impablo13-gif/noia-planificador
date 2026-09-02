@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Save, Trash2, House, Plane, ShieldHalf, Goal, ShieldAlert, FileText, ExternalLink, Flame, ClipboardList } from 'lucide-react'
+import { Save, Trash2, House, Plane, ShieldHalf, Goal, ShieldAlert, FileText, ExternalLink, Flame, ClipboardList, Timer } from 'lucide-react'
 import Modal from './Modal.jsx'
 import FileDrop from './FileDrop.jsx'
 import ShieldPhotoField from './ShieldPhotoField.jsx'
@@ -7,6 +7,7 @@ import PlayerAvatar from './PlayerAvatar.jsx'
 import SessionRpePanel from './SessionRpePanel.jsx'
 import MatchTacticalGroupsCard from './MatchTacticalGroupsCard.jsx'
 import MatchPlanModal from './MatchPlanModal.jsx'
+import LiveMatchPanel from './LiveMatchPanel.jsx'
 import { updateMatch, removeMatch, addMatch, addOpponent, getPartidosNpa, getPlayers, getFile, removePartidoNpa, getMatches } from '../db.js'
 import { matchPlayerByName } from '../statsEngine.js'
 import { rpeForDate } from '../bienestarStats.js'
@@ -122,6 +123,7 @@ export default function MatchModal({ match, opponents, onClose, onSaved, onGoToR
   const [status, setStatus] = useState(match.status || 'pendiente')
   const [gruposTacticos, setGruposTacticos] = useState(match.gruposTacticos || [])
   const [showPlan, setShowPlan] = useState(false)
+  const [showLive, setShowLive] = useState(false)
 
   const opponent = opponents.find((o) => o.id === opponentId)
   const isLiga = match.competition === 'Liga'
@@ -215,6 +217,21 @@ export default function MatchModal({ match, opponents, onClose, onSaved, onGoToR
             players={getPlayers().filter((p) => p.equipo === equipo)}
             onChanged={() => setGruposTacticos(getMatches().find((m) => m.id === match.id)?.gruposTacticos || [])}
           />
+        )}
+
+        {match.id && (
+          showLive ? (
+            <LiveMatchPanel
+              match={match}
+              players={getPlayers().filter((p) => p.equipo === equipo)}
+              onClose={() => setShowLive(false)}
+            />
+          ) : (
+            <button type="button" className="btn btn-secondary" onClick={() => setShowLive(true)} style={{ alignSelf: 'flex-start' }}>
+              <Timer size={14} />
+              Partido en directo (minutos)
+            </button>
+          )
         )}
 
         <hr className="divider" />
