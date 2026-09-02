@@ -155,16 +155,63 @@ export function computeQuintetos(matches) {
   return { aFavor: top(forMap), enContra: top(againstMap) }
 }
 
-export function computeFases(matches) {
-  const forMap = {}
-  const againstMap = {}
-  matches.forEach((m) => {
-    ;(m.goalEvents || []).forEach((ev) => {
-      const map = ev.type === 'for' ? forMap : againstMap
-      const phase = ev.phase || 'Sin especificar'
-      map[phase] = (map[phase] || 0) + 1
-    })
+// Mismo catálogo de fases (clave, etiqueta, grupo, color) que NPA Stats usa
+// al etiquetar cada gol en directo -- se repite aquí en vez de importarse
+// porque son dos repos hermanos independientes, pero las claves tienen que
+// coincidir letra por letra con las que llegan en goalEvents[].phase.
+export const GOAL_PHASES = [
+  { key: 'ABP', label: 'ABP', group: 1, color: '#8E5FD9' },
+  { key: 'Ataque Posicional', label: 'Ataque Posicional', group: 2, color: '#E0A030' },
+  { key: 'Incorporación', label: 'Incorporación', group: 2, color: '#E0A030' },
+  { key: 'Recuperación', label: 'Recuperación', group: 3, color: '#2FBF87' },
+  { key: 'Transición', label: 'Transición', group: 3, color: '#2FBF87' },
+  { key: '5x4', label: '5x4', group: 4, color: '#3B82C4' },
+  { key: '4x5', label: '4x5', group: 4, color: '#3B82C4' },
+  { key: '4x3', label: '4x3', group: 5, color: '#E08A3C' },
+  { key: '3x4', label: '3x4', group: 5, color: '#E08A3C' },
+  { key: '6M (Penalti)', label: '6M (Penalti)', group: 6, color: '#c21f26' },
+  { key: '10M (Doble penalti)', label: '10M (Doble penalti)', group: 6, color: '#8a141a' },
+  { key: 'En propia', label: 'En propia', group: 7, color: '#8a8a8a' },
+]
+
+export const GOAL_PHASE_GROUPS = (() => {
+  const map = new Map()
+  GOAL_PHASES.forEach((p) => {
+    if (!map.has(p.group)) map.set(p.group, { id: p.group, color: p.color, phases: [] })
+    map.get(p.group).phases.push(p)
   })
-  const toList = (map) => Object.entries(map).map(([phase, count]) => ({ phase, count })).sort((a, b) => b.count - a.count)
-  return { aFavor: toList(forMap), enContra: toList(againstMap) }
+  return [...map.values()]
+    .sort((a, b) => a.id - b.id)
+    .map((g) => ({ ...g, label: g.phases.map((p) => p.label).join(' / ') }))
+})()
+
+// Marcador de fases de gol al estilo del informe de Emanuel Santoro: una
+// fila por partido con el recuento por fase, a favor y en contra, más los
+// totales de temporada -- base tanto del panel de la app como del Excel
+// exportable. Un gol con una fase que ya no exista en GOAL_PHASES (formato
+// antiguo, o texto libre) no se pierde: se cuenta igual en el total del
+// bloque aunque no tenga columna propia en la tabla.
+export function computeFaseGolStats(matches) {
+  const rows = matches
+    .slice()
+    .sort((a, b) => (a.date < b.date ? -1 : 1))
+    .map((m) => {
+      const forCounts = {}, againstCounts = {}
+      GOAL_PHASES.forEach((p) => { forCounts[p.key] = 0; againstCounts[p.key] = 0 })
+      ;(m.goalEvents || []).forEach((ev) => {
+        const bucket = ev.type === 'for' ? forCounts : againstCounts
+        const key = ev.phase || 'Sin especificar'
+        bucket[key] = (bucket[key] || 0) + 1
+      })
+      return { id: m.id, date: m.date, rivalName: m.rivalName, teamGoals: m.teamGoals, rivalScore: m.rivalScore, forCounts, againstCounts }
+    })
+
+  const sumSide = (side) => {
+    const totals = {}
+    rows.forEach((r) => {
+      Object.entries(r[side]).forEach(([key, count]) => { totals[key] = (totals[key] || 0) + count })
+    })
+    return totals
+  }
+  return { rows, totalsFor: sumSide('forCounts'), totalsAgainst: sumSide('againstCounts') }
 }

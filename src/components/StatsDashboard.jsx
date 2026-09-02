@@ -1,6 +1,7 @@
 import { Goal, ShieldAlert, Users2, PieChart, Trophy, Target, Hand } from 'lucide-react'
-import { summarize, buildMatchRows, computeQuintetos, computeFases, matchPlayerByName } from '../statsEngine.js'
+import { summarize, buildMatchRows, computeQuintetos, matchPlayerByName } from '../statsEngine.js'
 import PlayerAvatar from './PlayerAvatar.jsx'
+import FaseGolStats from './FaseGolStats.jsx'
 
 function QuintetoRow({ q, max, textColor, barColor, players }) {
   return (
@@ -23,19 +24,6 @@ function QuintetoRow({ q, max, textColor, barColor, players }) {
   )
 }
 
-function PhaseBar({ phase, count, max, color }) {
-  const pct = max ? Math.round((count / max) * 100) : 0
-  return (
-    <div className="phase-row">
-      <span className="phase-row__label">{phase}</span>
-      <div className="leaderboard-bar-track" style={{ flex: 1 }}>
-        <div className="leaderboard-bar-fill" style={{ width: `${pct}%`, background: color }} />
-      </div>
-      <span className="phase-row__count">{count}</span>
-    </div>
-  )
-}
-
 // El mismo panel de estadísticas (tiles + xG + quintetos + fases) sirve tanto
 // para el global de la temporada como para un único partido — solo cambia el
 // array `matches` que se le pasa (toda la temporada, o [ese partido]).
@@ -43,9 +31,6 @@ export default function StatsDashboard({ matches, players }) {
   const stats = summarize(matches)
   const rows = buildMatchRows(matches)
   const quintetos = computeQuintetos(matches)
-  const fases = computeFases(matches)
-  const maxFaseFor = Math.max(1, ...fases.aFavor.map((f) => f.count))
-  const maxFaseAgainst = Math.max(1, ...fases.enContra.map((f) => f.count))
   const maxQuintetoFor = Math.max(1, ...quintetos.aFavor.map((q) => q.count))
   const maxQuintetoAgainst = Math.max(1, ...quintetos.enContra.map((q) => q.count))
 
@@ -208,38 +193,9 @@ export default function StatsDashboard({ matches, players }) {
           )}
         </div>
 
-        <div className="card">
-          <div className="leaderboard-card__head">
-            <div className="icon-chip" style={{ '--chip-color': 'var(--red-600)' }}><PieChart size={15} /></div>
-            <h4>¿De qué fase vienen nuestros goles?</h4>
-          </div>
-          {fases.aFavor.length === 0 ? (
-            <p className="text-muted" style={{ fontSize: 12.5 }}>Sin datos de fase todavía.</p>
-          ) : (
-            <div className="stack" style={{ gap: 8 }}>
-              {fases.aFavor.map((f) => (
-                <PhaseBar key={f.phase} phase={f.phase} count={f.count} max={maxFaseFor} color="linear-gradient(90deg, var(--red-700), var(--red-500))" />
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="card">
-          <div className="leaderboard-card__head">
-            <div className="icon-chip" style={{ '--chip-color': 'var(--blue-600)' }}><PieChart size={15} /></div>
-            <h4>¿De qué fase vienen los goles del rival?</h4>
-          </div>
-          {fases.enContra.length === 0 ? (
-            <p className="text-muted" style={{ fontSize: 12.5 }}>Sin datos de fase todavía.</p>
-          ) : (
-            <div className="stack" style={{ gap: 8 }}>
-              {fases.enContra.map((f) => (
-                <PhaseBar key={f.phase} phase={f.phase} count={f.count} max={maxFaseAgainst} color="linear-gradient(90deg, var(--blue-700), var(--blue-500))" />
-              ))}
-            </div>
-          )}
-        </div>
       </div>
+
+      <FaseGolStats matches={matches} />
     </>
   )
 }
