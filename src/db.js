@@ -22,6 +22,7 @@ const KEYS = {
   weeklyGoals: 'noia-plan:weeklyGoals',
   analisisProyectos: 'noia-plan:analisisProyectos',
   analisisEventos: 'noia-plan:analisisEventos',
+  modeloJuego: 'noia-plan:modeloJuego',
 }
 
 function readJSON(key, fallback) {
@@ -523,6 +524,35 @@ export function getUltimoEventoFin(proyectoId) {
   const eventos = getAnalisisEventos(proyectoId)
   if (eventos.length === 0) return null
   return Math.max(...eventos.map((e) => e.endTime ?? e.startTime ?? 0))
+}
+
+// ---------- Modelo de juego ----------
+
+export const MODELO_JUEGO_SECCIONES = ['identidad', 'conceptos', 'sistemaOfensivo', 'sistemaDefensivo', 'situacionesEspeciales', 'bibliografia']
+
+const EMPTY_MODELO_JUEGO = {
+  identidad: '', conceptos: '', sistemaOfensivo: '', sistemaDefensivo: '', situacionesEspeciales: '', bibliografia: '',
+  videos: [], // { id, seccion, titulo, url }
+}
+
+export function getModeloJuego() {
+  return { ...EMPTY_MODELO_JUEGO, ...readJSON(KEYS.modeloJuego, {}) }
+}
+
+export function updateModeloJuego(patch) {
+  const next = { ...getModeloJuego(), ...patch }
+  writeJSON(KEYS.modeloJuego, next)
+  return next
+}
+
+export function addModeloJuegoVideo(video) {
+  const modelo = getModeloJuego()
+  return updateModeloJuego({ videos: [...modelo.videos, { id: uid(), ...video }] })
+}
+
+export function removeModeloJuegoVideo(id) {
+  const modelo = getModeloJuego()
+  return updateModeloJuego({ videos: modelo.videos.filter((v) => v.id !== id) })
 }
 
 // ---------- Escudo del club (cabecera) ----------
