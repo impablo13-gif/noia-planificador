@@ -20,6 +20,8 @@ const KEYS = {
   bienestarAliases: 'noia-plan:bienestarAliases',
   asistencia: 'noia-plan:asistencia',
   weeklyGoals: 'noia-plan:weeklyGoals',
+  analisisProyectos: 'noia-plan:analisisProyectos',
+  analisisEventos: 'noia-plan:analisisEventos',
 }
 
 function readJSON(key, fallback) {
@@ -424,6 +426,103 @@ export function setWeeklyGoalsForWeek(weekKey, patch) {
   all[weekKey] = { ...(all[weekKey] || { objetivos: '', contenidos: '' }), ...patch }
   writeJSON(KEYS.weeklyGoals, all)
   return all[weekKey]
+}
+
+// ---------- Análisis de vídeo (etiquetado de eventos por proyecto) ----------
+
+// Botonera de partida al crear un proyecto — cada botón es un tipo de evento
+// que se etiqueta con su color propio; el color no tiene significado táctico,
+// es solo para distinguir de un vistazo la lista de eventos ya marcados.
+export const DEFAULT_BOTONES = [
+  { id: 'ataque-posicional', label: 'Ataque posicional', color: 'var(--blue-600)' },
+  { id: 'contraataque', label: 'Contraataque', color: 'var(--success-600)' },
+  { id: 'perdida', label: 'Pérdida', color: 'var(--danger-600)' },
+  { id: 'recuperacion', label: 'Recuperación', color: 'var(--violet-600)' },
+  { id: 'presion-rival', label: 'Presión rival', color: 'var(--warn-600)' },
+  { id: 'abp-favor', label: 'ABP a favor', color: 'var(--gold-600)' },
+  { id: 'abp-contra', label: 'ABP en contra', color: 'var(--orange-600)' },
+  { id: 'gol', label: 'Gol', color: 'var(--red-600)' },
+]
+
+export function getAnalisisProyectos() {
+  return readJSON(KEYS.analisisProyectos, [])
+}
+
+export function saveAnalisisProyectos(list) {
+  writeJSON(KEYS.analisisProyectos, list)
+}
+
+export function addAnalisisProyecto(proyecto) {
+  const next = [
+    ...getAnalisisProyectos(),
+    {
+      id: uid(),
+      tipo: 'propio', // 'propio' | 'rival'
+      opponentId: null,
+      videoSourceType: 'file', // 'file' | 'url'
+      videoFileId: null,
+      videoUrl: '',
+      botones: DEFAULT_BOTONES,
+      createdAt: Date.now(),
+      ...proyecto,
+    },
+  ]
+  saveAnalisisProyectos(next)
+  return next
+}
+
+export function updateAnalisisProyecto(id, patch) {
+  const next = getAnalisisProyectos().map((p) => (p.id === id ? { ...p, ...patch } : p))
+  saveAnalisisProyectos(next)
+  return next
+}
+
+// Al borrar un proyecto se borran también sus eventos y, si el vídeo se subió
+// como archivo local (no una URL externa), el propio archivo en IndexedDB —
+// si no, quedaría un vídeo huérfano ocupando espacio para siempre.
+export function removeAnalisisProyecto(id) {
+  const proyecto = getAnalisisProyectos().find((p) => p.id === id)
+  const next = getAnalisisProyectos().filter((p) => p.id !== id)
+  saveAnalisisProyectos(next)
+  saveAnalisisEventos(getAnalisisEventos().filter((e) => e.proyectoId !== id))
+  if (proyecto?.videoSourceType === 'file' && proyecto.videoFileId) {
+    deleteFile(proyecto.videoFileId)
+  }
+  return next
+}
+
+export function getAnalisisEventos(proyectoId) {
+  const all = readJSON(KEYS.analisisEventos, [])
+  return proyectoId ? all.filter((e) => e.proyectoId === proyectoId) : all
+}
+
+function saveAnalisisEventos(list) {
+  writeJSON(KEYS.analisisEventos, list)
+}
+
+export function addAnalisisEvento(evento) {
+  const next = [...getAnalisisEventos(), { id: uid(), nota: '', jugadorId: null, createdAt: Date.now(), ...evento }]
+  saveAnalisisEventos(next)
+  return next
+}
+
+export function updateAnalisisEvento(id, patch) {
+  const next = getAnalisisEventos().map((e) => (e.id === id ? { ...e, ...patch } : e))
+  saveAnalisisEventos(next)
+  return next
+}
+
+export function removeAnalisisEvento(id) {
+  const next = getAnalisisEventos().filter((e) => e.id !== id)
+  saveAnalisisEventos(next)
+  return next
+}
+
+// Punto para "continuar donde lo dejé": el final del último evento marcado.
+export function getUltimoEventoFin(proyectoId) {
+  const eventos = getAnalisisEventos(proyectoId)
+  if (eventos.length === 0) return null
+  return Math.max(...eventos.map((e) => e.endTime ?? e.startTime ?? 0))
 }
 
 // ---------- Escudo del club (cabecera) ----------
