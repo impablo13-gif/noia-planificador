@@ -5,7 +5,8 @@ import FileDrop from './FileDrop.jsx'
 import ShieldPhotoField from './ShieldPhotoField.jsx'
 import PlayerAvatar from './PlayerAvatar.jsx'
 import SessionRpePanel from './SessionRpePanel.jsx'
-import { updateMatch, removeMatch, addMatch, addOpponent, getPartidosNpa, getPlayers, getFile, removePartidoNpa } from '../db.js'
+import MatchTacticalGroupsCard from './MatchTacticalGroupsCard.jsx'
+import { updateMatch, removeMatch, addMatch, addOpponent, getPartidosNpa, getPlayers, getFile, removePartidoNpa, getMatches } from '../db.js'
 import { matchPlayerByName } from '../statsEngine.js'
 import { rpeForDate } from '../bienestarStats.js'
 import { formatDateLong, parseISODate } from '../dateUtils.js'
@@ -118,6 +119,7 @@ export default function MatchModal({ match, opponents, onClose, onSaved, onGoToR
   const [reportText, setReportText] = useState(match.reportText || '')
   const [reportFileId, setReportFileId] = useState(match.reportFileId || null)
   const [status, setStatus] = useState(match.status || 'pendiente')
+  const [gruposTacticos, setGruposTacticos] = useState(match.gruposTacticos || [])
 
   const opponent = opponents.find((o) => o.id === opponentId)
   const isLiga = match.competition === 'Liga'
@@ -197,6 +199,15 @@ export default function MatchModal({ match, opponents, onClose, onSaved, onGoToR
         )}
 
         <SessionRpePanel fecha={date} players={getPlayers().filter((p) => p.equipo === equipo)} title="RPE del partido" onChange={() => setRpeTick((t) => t + 1)} />
+
+        {match.id && (
+          <MatchTacticalGroupsCard
+            matchId={match.id}
+            grupos={gruposTacticos}
+            players={getPlayers().filter((p) => p.equipo === equipo)}
+            onChanged={() => setGruposTacticos(getMatches().find((m) => m.id === match.id)?.gruposTacticos || [])}
+          />
+        )}
 
         <hr className="divider" />
         <h4 style={{ fontSize: 13.5, color: 'var(--ink-700)' }}>Clasificar partido</h4>
