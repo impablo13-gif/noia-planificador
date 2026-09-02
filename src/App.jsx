@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CalendarDays, Users, ShieldHalf, Sparkles, LayoutGrid, Bandage, BarChart3, ClipboardCheck, HeartPulse, Video, Compass, FolderKanban, Dumbbell, UserSearch } from 'lucide-react'
+import { CalendarDays, Users, ShieldHalf, Sparkles, LayoutGrid, Bandage, BarChart3, ClipboardCheck, HeartPulse, Video, Compass, FolderKanban, Dumbbell, UserSearch, PenTool } from 'lucide-react'
 import CalendarView from './components/CalendarView.jsx'
 import RosterView from './components/RosterView.jsx'
 import OpponentsView from './components/OpponentsView.jsx'
@@ -14,6 +14,7 @@ import ModeloJuegoView from './components/ModeloJuegoView.jsx'
 import PlaybookView from './components/PlaybookView.jsx'
 import TareasView from './components/TareasView.jsx'
 import MercadoView from './components/MercadoView.jsx'
+import QuickWhiteboardModal from './components/QuickWhiteboardModal.jsx'
 import ClubCrest from './components/ClubCrest.jsx'
 import BackupControls from './components/BackupControls.jsx'
 import { seedIfNeeded } from './seedData.js'
@@ -46,6 +47,7 @@ export default function App() {
   const [tab, setTab] = useState('calendario')
   const [focusOpponentId, setFocusOpponentId] = useState(null)
   const [focusAnalisisProyectoId, setFocusAnalisisProyectoId] = useState(null)
+  const [showWhiteboard, setShowWhiteboard] = useState(false)
 
   function goToOpponent(opponentId) {
     setFocusOpponentId(opponentId)
@@ -68,7 +70,13 @@ export default function App() {
               <div className="app-header__subtitle">Noia Portus Apostoli FS · Juvenil DH · 26-27</div>
             </div>
           </div>
-          <BackupControls />
+          <div className="row" style={{ gap: 8 }}>
+            <button type="button" className="btn btn-secondary" onClick={() => setShowWhiteboard(true)}>
+              <PenTool size={15} />
+              Pizarra rápida
+            </button>
+            <BackupControls />
+          </div>
         </div>
         <nav className="tabs">
           {TABS.map(({ id, label, icon: Icon }) => (
@@ -104,6 +112,8 @@ export default function App() {
         {tab === 'mesociclos' && <MesocicloView />}
         {tab === 'asistente' && <AssistantView />}
       </main>
+
+      {showWhiteboard && <QuickWhiteboardModal onClose={() => setShowWhiteboard(false)} />}
     </>
   )
 }
