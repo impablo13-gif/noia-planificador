@@ -40,6 +40,14 @@ export default function MatchPlanModal({ match, opponent, players, onClose }) {
             <div>
               <div className="hero-card__value" style={{ fontSize: 20 }}>{opponent?.name || match.rivalName || 'Rival'}</div>
               <div className="hero-card__label">{formatDateLong(parseISODate(match.date))}{match.time ? ` · ${match.time}` : ''}{match.superficie ? ` · ${match.superficie}` : ''}</div>
+              {match.horaCitacion && (
+                <div className="hero-card__label" style={{ marginTop: 4 }}>Citación: {match.horaCitacion}</div>
+              )}
+              {match.calentamientoUrl && (
+                <div className="hero-card__label" style={{ marginTop: 2 }}>
+                  <a href={match.calentamientoUrl} target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>Ver calentamiento →</a>
+                </div>
+              )}
             </div>
           </div>
         </div>

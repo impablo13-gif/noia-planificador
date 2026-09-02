@@ -121,6 +121,8 @@ export default function MatchModal({ match, opponents, onClose, onSaved, onGoToR
   const [reportText, setReportText] = useState(match.reportText || '')
   const [reportFileId, setReportFileId] = useState(match.reportFileId || null)
   const [status, setStatus] = useState(match.status || 'pendiente')
+  const [horaCitacion, setHoraCitacion] = useState(match.horaCitacion || '')
+  const [calentamientoUrl, setCalentamientoUrl] = useState(match.calentamientoUrl || '')
   const [gruposTacticos, setGruposTacticos] = useState(match.gruposTacticos || [])
   const [showPlan, setShowPlan] = useState(false)
   const [showLive, setShowLive] = useState(false)
@@ -149,6 +151,8 @@ export default function MatchModal({ match, opponents, onClose, onSaved, onGoToR
       reportText,
       reportFileId,
       status,
+      horaCitacion,
+      calentamientoUrl,
     }
     if (match.id) {
       updateMatch(match.id, patch)
@@ -245,6 +249,19 @@ export default function MatchModal({ match, opponents, onClose, onSaved, onGoToR
           <div className="field">
             <label className="field__label">Hora</label>
             <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+          </div>
+        </div>
+
+        <div className="grid cols-2">
+          <div className="field">
+            <label className="field__label">Hora de citación <span className="field__optional">(opcional)</span></label>
+            <input type="time" value={horaCitacion} onChange={(e) => setHoraCitacion(e.target.value)} />
+            <p className="field__help">Si es distinta de la hora del partido — para llegar con margen antes de saltar a pista.</p>
+          </div>
+          <div className="field">
+            <label className="field__label">Enlace del calentamiento <span className="field__optional">(opcional)</span></label>
+            <input type="text" value={calentamientoUrl} onChange={(e) => setCalentamientoUrl(e.target.value)} placeholder="https://…" />
+            <p className="field__help">Vídeo o sesión ya creada, para mandarla antes del partido.</p>
           </div>
         </div>
 
@@ -393,7 +410,7 @@ export default function MatchModal({ match, opponents, onClose, onSaved, onGoToR
 
       {showPlan && (
         <MatchPlanModal
-          match={{ ...match, gruposTacticos, observaciones }}
+          match={{ ...match, gruposTacticos, observaciones, horaCitacion, calentamientoUrl }}
           opponent={opponent}
           players={getPlayers().filter((p) => p.equipo === equipo)}
           onClose={() => setShowPlan(false)}
