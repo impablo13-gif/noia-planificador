@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { ShieldPlus, ShieldHalf } from 'lucide-react'
-import { getOpponents } from '../db.js'
+import { ShieldPlus, ShieldHalf, Video } from 'lucide-react'
+import { getOpponents, getAnalisisProyectos, getAnalisisEventos } from '../db.js'
 import OpponentModal from './OpponentModal.jsx'
 import PlayerAvatar from './PlayerAvatar.jsx'
 import PageHeader from './PageHeader.jsx'
@@ -9,6 +9,13 @@ export default function OpponentsView({ initialOpponentId, onConsumeInitial, onG
   const [refreshKey, setRefreshKey] = useState(0)
   const [editing, setEditing] = useState(null)
   const opponents = getOpponents()
+  const analisisProyectos = getAnalisisProyectos()
+
+  function videoEventCount(opponentId) {
+    return analisisProyectos
+      .filter((p) => p.opponentId === opponentId)
+      .reduce((sum, p) => sum + getAnalisisEventos(p.id).length, 0)
+  }
 
   useEffect(() => {
     if (!initialOpponentId) return
@@ -41,13 +48,20 @@ export default function OpponentsView({ initialOpponentId, onConsumeInitial, onG
                 <div className="tile-card__meta">{o.pabellon && o.pabellon !== '—' ? o.pabellon : 'Pabellón sin datos'}</div>
               </div>
             </div>
-            {o.scouting?.highlights?.length > 0 ? (
-              <span className="badge badge-success">Scouting anotado</span>
-            ) : (
-              <span className="badge badge-gray">
-                <ShieldHalf size={11} /> Sin scouting aún
-              </span>
-            )}
+            <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+              {o.scouting?.highlights?.length > 0 ? (
+                <span className="badge badge-success">Scouting anotado</span>
+              ) : (
+                <span className="badge badge-gray">
+                  <ShieldHalf size={11} /> Sin scouting aún
+                </span>
+              )}
+              {videoEventCount(o.id) > 0 && (
+                <span className="badge badge-red">
+                  <Video size={11} /> {videoEventCount(o.id)} evento{videoEventCount(o.id) === 1 ? '' : 's'} de vídeo
+                </span>
+              )}
+            </div>
           </div>
         ))}
       </div>
