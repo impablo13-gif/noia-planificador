@@ -1,5 +1,7 @@
-import { Goal, ShieldAlert, Users2, PieChart, Trophy, Target, Hand } from 'lucide-react'
+import { useState } from 'react'
+import { Goal, ShieldAlert, Users2, PieChart, Trophy, Target, Hand, Pencil } from 'lucide-react'
 import { summarize, buildMatchRows, computeQuintetos, matchPlayerByName } from '../statsEngine.js'
+import { updatePartidoNpa } from '../db.js'
 import PlayerAvatar from './PlayerAvatar.jsx'
 import FaseGolStats from './FaseGolStats.jsx'
 import PlayerStatsTable from './PlayerStatsTable.jsx'
@@ -28,12 +30,22 @@ function QuintetoRow({ q, max, textColor, barColor, players }) {
 // El mismo panel de estadísticas (tiles + xG + quintetos + fases) sirve tanto
 // para el global de la temporada como para un único partido — solo cambia el
 // array `matches` que se le pasa (toda la temporada, o [ese partido]).
-export default function StatsDashboard({ matches, players }) {
+export default function StatsDashboard({ matches, players, onChanged }) {
+  const [editingResultado, setEditingResultado] = useState(false)
   const stats = summarize(matches)
   const rows = buildMatchRows(matches)
   const quintetos = computeQuintetos(matches)
   const maxQuintetoFor = Math.max(1, ...quintetos.aFavor.map((q) => q.count))
   const maxQuintetoAgainst = Math.max(1, ...quintetos.enContra.map((q) => q.count))
+  // El resultado final solo se puede corregir viendo un partido concreto —
+  // sobre un agregado de varios no habría un partido claro al que aplicarlo.
+  const editableMatchId = matches.length === 1 ? matches[0].id : null
+
+  function handleResultadoBlur(field, rawValue) {
+    const value = Math.max(0, Math.round(Number(rawValue)) || 0)
+    updatePartidoNpa(editableMatchId, { [field]: value })
+    onChanged?.()
+  }
 
   if (matches.length === 0) {
     return (
@@ -50,9 +62,23 @@ export default function StatsDashboard({ matches, players }) {
   return (
     <>
       <div className="card hero-card" style={{ padding: 22, marginBottom: 16 }}>
-        <div className="row" style={{ gap: 8, marginBottom: 16 }}>
-          <Trophy size={17} />
-          <h4 style={{ color: '#fff', margin: 0 }}>Balance de la temporada</h4>
+        <div className="row spread" style={{ marginBottom: 16 }}>
+          <div className="row" style={{ gap: 8 }}>
+            <Trophy size={17} />
+            <h4 style={{ color: '#fff', margin: 0 }}>Balance de la temporada</h4>
+          </div>
+          {editableMatchId && (
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={() => setEditingResultado((v) => !v)}
+              style={{ color: '#fff', background: editingResultado ? 'rgba(255,255,255,0.25)' : 'transparent', borderColor: '#fff' }}
+              title={editingResultado ? 'Dejar de editar' : 'Corregir el resultado de este partido'}
+            >
+              <Pencil size={12} />
+              {editingResultado ? 'Editando' : 'Editar'}
+            </button>
+          )}
         </div>
         <div className="row" style={{ gap: 28, flexWrap: 'wrap' }}>
           <div>
@@ -60,7 +86,27 @@ export default function StatsDashboard({ matches, players }) {
             <div className="hero-card__label">V-E-D en {stats.partidos} partido{stats.partidos === 1 ? '' : 's'}</div>
           </div>
           <div>
-            <div className="hero-card__value" style={{ fontSize: 34 }}>{stats.goles}-{stats.encajados}</div>
+            {editableMatchId && editingResultado ? (
+              <div className="row" style={{ gap: 6, alignItems: 'center' }}>
+                <input
+                  type="number"
+                  min="0"
+                  defaultValue={stats.goles}
+                  onBlur={(e) => handleResultadoBlur('teamGoals', e.target.value)}
+                  style={{ width: 52, fontSize: 22, textAlign: 'center', padding: '2px 4px' }}
+                />
+                <span className="hero-card__value" style={{ fontSize: 34 }}>-</span>
+                <input
+                  type="number"
+                  min="0"
+                  defaultValue={stats.encajados}
+                  onBlur={(e) => handleResultadoBlur('rivalScore', e.target.value)}
+                  style={{ width: 52, fontSize: 22, textAlign: 'center', padding: '2px 4px' }}
+                />
+              </div>
+            ) : (
+              <div className="hero-card__value" style={{ fontSize: 34 }}>{stats.goles}-{stats.encajados}</div>
+            )}
             <div className="hero-card__label">Goles a favor - en contra</div>
           </div>
           <div>
@@ -197,7 +243,7 @@ export default function StatsDashboard({ matches, players }) {
       </div>
 
       <FaseGolStats matches={matches} />
-      <PlayerStatsTable players={players} matches={matches} />
+      <PlayerStatsTable players={players} matches={matches} onChanged={onChanged} />
     </>
   )
 }

@@ -15,6 +15,7 @@ export default function EstadisticasView() {
   const [refreshKey, setRefreshKey] = useState(0)
   const [syncMsg, setSyncMsg] = useState('')
   const [competicionFilter, setCompeticionFilter] = useState(null)
+  const [rivalFilter, setRivalFilter] = useState('')
   const [openMatchId, setOpenMatchId] = useState(null)
   const [reviewPreview, setReviewPreview] = useState(null) // preview de previewNpaMatchImport a la espera de que Pablo lo confirme/edite
 
@@ -25,7 +26,9 @@ export default function EstadisticasView() {
   // corregir…) queda fuera sin más, no aparece ni como chip ni como opción.
   const allMatches = getPartidosNpa().filter((m) => /juvenil/i.test(m.equipo || ''))
   const competitionByNpaId = new Map(getMatches().filter((cm) => cm.npaMatchId).map((cm) => [cm.npaMatchId, cm.competition]))
-  const matches = filterByCompetition(allMatches, competitionByNpaId, competicionFilter)
+  const matchesByCompetition = filterByCompetition(allMatches, competitionByNpaId, competicionFilter)
+  const rivales = [...new Set(allMatches.map((m) => m.rivalName).filter(Boolean))].sort((a, b) => a.localeCompare(b))
+  const matches = rivalFilter ? matchesByCompetition.filter((m) => m.rivalName === rivalFilter) : matchesByCompetition
   const openMatch = openMatchId ? matches.find((m) => m.id === openMatchId) : null
 
   function bump() {
@@ -121,7 +124,7 @@ export default function EstadisticasView() {
               Eliminar
             </button>
           </PageHeader>
-          <StatsDashboard matches={[openMatch]} players={players} />
+          <StatsDashboard matches={[openMatch]} players={players} onChanged={bump} />
         </>
       ) : (
         <>
@@ -150,9 +153,17 @@ export default function EstadisticasView() {
                 </button>
               ))}
             </div>
+            {rivales.length > 1 && (
+              <select value={rivalFilter} onChange={(e) => setRivalFilter(e.target.value)} style={{ fontSize: 13, padding: '6px 10px', maxWidth: 220 }}>
+                <option value="">Todos los rivales</option>
+                {rivales.map((r) => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
+            )}
           </div>
 
-          <StatsDashboard matches={matches} players={players} />
+          <StatsDashboard matches={matches} players={players} onChanged={bump} />
 
           {matches.length > 0 && (
             <div className="card" style={{ marginTop: 16 }}>

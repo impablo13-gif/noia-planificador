@@ -339,6 +339,27 @@ export function removePartidoNpa(id) {
   return next
 }
 
+// Corrige a mano un dato de un jugador en un partido concreto ya importado
+// de NPA Stats (por si el dato llegó mal, o Pablo quiere ajustarlo) — solo
+// tiene sentido sobre un partido concreto, nunca sobre un agregado de varios.
+export function updatePartidoNpaPlayer(matchId, playerName, patch) {
+  const next = getPartidosNpa().map((m) => {
+    if (m.id !== matchId) return m
+    const players = (m.players || []).map((p) => (p.name === playerName ? { ...p, ...patch } : p))
+    return { ...m, players }
+  })
+  savePartidosNpa(next)
+  return next
+}
+
+// Corrige a mano campos propios del partido (resultado final…), no de un
+// jugador — mismo criterio: solo tiene sentido sobre un partido concreto.
+export function updatePartidoNpa(matchId, patch) {
+  const next = getPartidosNpa().map((m) => (m.id === matchId ? { ...m, ...patch } : m))
+  savePartidosNpa(next)
+  return next
+}
+
 // Alias nombre-de-NPA-Stats → jugador y equipo-de-NPA-Stats → equipo de la
 // Plantilla: el nombre/equipo que Pablo escribe en NPA Stats casi nunca
 // coincide letra por letra con la Plantilla (motes, acentos, "NOIA PORTUS

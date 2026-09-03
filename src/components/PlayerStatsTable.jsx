@@ -1,29 +1,43 @@
 import { useState } from 'react'
-import { FileSpreadsheet, Users2, Search } from 'lucide-react'
+import { FileSpreadsheet, Users2, Search, Pencil } from 'lucide-react'
 import { computePlayerStats } from '../statsEngine.js'
-import { PUESTOS } from '../db.js'
+import { PUESTOS, updatePartidoNpaPlayer } from '../db.js'
 import { exportPlayerStatsToExcel } from '../playerStatsExport.js'
 
 const COLUMNS = [
   { key: 'partidos', label: 'PJ' },
-  { key: 'goles', label: 'Goles' },
-  { key: 'asistencias', label: 'Asist.' },
-  { key: 'shotsOn', label: 'Tiros a puerta' },
-  { key: 'shotsOff', label: 'Fuera' },
-  { key: 'shotsPost', label: 'Al palo' },
-  { key: 'saves', label: 'Paradas' },
-  { key: 'fouls', label: 'Faltas' },
-  { key: 'yellow', label: 'Amar.' },
-  { key: 'red', label: 'Rojas' },
-  { key: 'minutos', label: 'Minutos' },
+  { key: 'goles', label: 'Goles', field: 'goals' },
+  { key: 'asistencias', label: 'Asist.', field: 'assists' },
+  { key: 'shotsOn', label: 'Tiros a puerta', field: 'shotsOn' },
+  { key: 'shotsOff', label: 'Fuera', field: 'shotsOff' },
+  { key: 'shotsPost', label: 'Al palo', field: 'shotsPost' },
+  { key: 'saves', label: 'Paradas', field: 'saves' },
+  { key: 'fouls', label: 'Faltas', field: 'fouls' },
+  { key: 'yellow', label: 'Amar.', field: 'yellow' },
+  { key: 'red', label: 'Rojas', field: 'red' },
+  { key: 'minutos', label: 'Minutos', field: 'seconds', toField: (v) => v * 60 },
 ]
 
 // Tabla de estadísticas de toda la plantilla (una fila por jugador) —
 // filtrable por nombre y posición aquí mismo, y exportable a Excel con
 // autofiltro para seguir filtrando/ordenando ya fuera de la app.
-export default function PlayerStatsTable({ players, matches, teamLabel }) {
+export default function PlayerStatsTable({ players, matches, teamLabel, onChanged }) {
   const [busqueda, setBusqueda] = useState('')
   const [posicionFiltro, setPosicionFiltro] = useState(null)
+  const [editing, setEditing] = useState(false)
+  // Editar un dato solo tiene sentido viendo un partido concreto — sobre un
+  // agregado de varios partidos no habría un partido claro al que aplicar
+  // el cambio.
+  const editableMatchId = matches.length === 1 ? matches[0].id : null
+  const isEditing = editing && !!editableMatchId
+
+  function handleEdit(nombre, col, rawValue) {
+    if (!editableMatchId || !col.field) return
+    const n = Math.max(0, Math.round(Number(rawValue)) || 0)
+    const value = col.toField ? col.toField(n) : n
+    updatePartidoNpaPlayer(editableMatchId, nombre, { [col.field]: value })
+    onChanged?.()
+  }
 
   // Solo jugadores que han disputado al menos uno de estos partidos — un
   // jugador sin apariciones aquí no aporta nada a la tabla, solo ceros.
@@ -50,6 +64,17 @@ export default function PlayerStatsTable({ players, matches, teamLabel }) {
         <div className="leaderboard-card__head" style={{ margin: 0 }}>
           <div className="icon-chip" style={{ '--chip-color': 'var(--blue-600)' }}><Users2 size={15} /></div>
           <h4>Estadísticas de jugadores</h4>
+          {editableMatchId && (
+            <button
+              type="button"
+              className={`btn btn-sm ${isEditing ? 'btn-primary' : 'btn-ghost'}`}
+              onClick={() => setEditing((v) => !v)}
+              title={isEditing ? 'Dejar de editar' : 'Editar los datos de este partido'}
+            >
+              <Pencil size={12} />
+              {isEditing ? 'Editando' : 'Editar'}
+            </button>
+          )}
         </div>
         <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
           <div className="field" style={{ marginBottom: 0, position: 'relative' }}>
@@ -78,6 +103,15 @@ export default function PlayerStatsTable({ players, matches, teamLabel }) {
         </div>
       )}
 
+      {!editableMatchId && (
+        <p className="text-muted" style={{ fontSize: 11.5, marginTop: 0, marginBottom: 10 }}>
+          Para corregir un dato a mano, abre ese partido en "Partido a partido" — aquí es la suma de varios partidos.
+        </p>
+      )}
+      {isEditing && (
+        <p className="text-muted" style={{ fontSize: 11.5, marginTop: 0, marginBottom: 10 }}>Toca "Editando" para guardar y salir del modo edición.</p>
+      )}
+
       <div className="fasegol-table-wrap">
         <table className="fasegol-table">
           <thead>
@@ -100,7 +134,19 @@ export default function PlayerStatsTable({ players, matches, teamLabel }) {
                   </td>
                   <td>{r.posicion}</td>
                   {COLUMNS.map((c) => (
-                    <td key={c.key}>{r[c.key] || 0}</td>
+                    <td key={c.key}>
+                      {isEditing && c.field ? (
+                        <input
+                          type="number"
+                          min="0"
+                          defaultValue={r[c.key] || 0}
+                          onBlur={(e) => handleEdit(r.nombre, c, e.target.value)}
+                          style={{ width: 48, textAlign: 'center', fontSize: 12, padding: '2px 4px' }}
+                        />
+                      ) : (
+                        r[c.key] || 0
+                      )}
+                    </td>
                   ))}
                 </tr>
               ))
