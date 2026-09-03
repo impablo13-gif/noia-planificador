@@ -3,7 +3,8 @@
 // categoría (a favor / en contra, fila de TOTALES y una fila por partido).
 // Todo sale de goalEvents[].phase, que NPA Stats ya etiqueta gol a gol -- no
 // hace falta teclear nada aparte, solo tener los partidos importados.
-import { FileSpreadsheet, PieChart } from 'lucide-react'
+import { useState } from 'react'
+import { FileSpreadsheet, PieChart, Search } from 'lucide-react'
 import { computeFaseGolStats, GOAL_PHASES, GOAL_PHASE_GROUPS } from '../statsEngine.js'
 import { parseISODate, formatDateShort } from '../dateUtils.js'
 import { exportFaseGolStatsToExcel } from '../faseGolExport.js'
@@ -84,10 +85,14 @@ function CompareBar({ label, color, forValue, againstValue, max }) {
 }
 
 export default function FaseGolStats({ matches, teamLabel }) {
+  const [busqueda, setBusqueda] = useState('')
   const { rows, totalsFor, totalsAgainst } = computeFaseGolStats(matches)
   const totalForAll = Object.values(totalsFor).reduce((a, b) => a + b, 0)
   const totalAgainstAll = Object.values(totalsAgainst).reduce((a, b) => a + b, 0)
   const maxPhase = Math.max(1, ...GOAL_PHASES.map((p) => Math.max(totalsFor[p.key] || 0, totalsAgainst[p.key] || 0)))
+  const filteredRows = busqueda.trim()
+    ? rows.filter((r) => (r.rivalName || '').toLowerCase().includes(busqueda.trim().toLowerCase()))
+    : rows
 
   if (totalForAll === 0 && totalAgainstAll === 0) {
     return (
@@ -126,10 +131,22 @@ export default function FaseGolStats({ matches, teamLabel }) {
             <div className="icon-chip" style={{ '--chip-color': 'var(--red-600)' }}><PieChart size={15} /></div>
             <h4>Marcador de fases, partido a partido</h4>
           </div>
-          <button type="button" className="btn btn-secondary btn-sm" onClick={() => exportFaseGolStatsToExcel(rows, totalsFor, totalsAgainst, teamLabel)}>
-            <FileSpreadsheet size={14} />
-            Exportar a Excel
-          </button>
+          <div className="row" style={{ gap: 8 }}>
+            <div className="field" style={{ marginBottom: 0, position: 'relative' }}>
+              <Search size={13} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-300)' }} />
+              <input
+                type="text"
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                placeholder="Filtrar por rival…"
+                style={{ paddingLeft: 28, fontSize: 12.5, padding: '6px 10px 6px 28px', maxWidth: 180 }}
+              />
+            </div>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => exportFaseGolStatsToExcel(rows, totalsFor, totalsAgainst, teamLabel)}>
+              <FileSpreadsheet size={14} />
+              Exportar a Excel
+            </button>
+          </div>
         </div>
 
         <div className="fasegol-table-wrap">
@@ -167,7 +184,10 @@ export default function FaseGolStats({ matches, teamLabel }) {
                 {GOAL_PHASES.map((p) => <td key={`at-${p.key}`}>{totalsAgainst[p.key] || 0}</td>)}
                 <td>{totalAgainstAll}</td>
               </tr>
-              {rows.map((row) => {
+              {filteredRows.length === 0 && (
+                <tr><td colSpan={GOAL_PHASES.length * 2 + 3} style={{ textAlign: 'center', color: 'var(--ink-500)', padding: 14 }}>Sin partidos que coincidan con "{busqueda}".</td></tr>
+              )}
+              {filteredRows.map((row) => {
                 const rowForTotal = Object.values(row.forCounts).reduce((a, b) => a + b, 0)
                 const rowAgainstTotal = Object.values(row.againstCounts).reduce((a, b) => a + b, 0)
                 return (

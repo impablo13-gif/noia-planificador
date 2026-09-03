@@ -110,6 +110,12 @@ function buildSheet(rows, totalsFor, totalsAgainst) {
   })
   ws['!cols'] = Array.from({ length: totalCols }, (_, c) => ({ wch: c < FIXED.length ? 14 : 9 }))
   ws['!rows'] = [{ hpt: 20 }, { hpt: 20 }, { hpt: 26 }]
+  // Autofiltro desde la fila de cabecera de fases (fila 3 de Excel) hasta la
+  // última fila de partido, para poder filtrar/ordenar por cualquier
+  // columna (fase, rival, resultado…) ya abierto en Excel. La fila de
+  // TOTALES queda dentro del rango — es lo habitual en Excel, se filtra con
+  // el resto si se aplica un filtro.
+  ws['!autofilter'] = { ref: XLSXStyle.utils.encode_range({ s: { r: 2, c: 0 }, e: { r: totalRows - 1, c: totalCols - 1 } }) }
   return ws
 }
 

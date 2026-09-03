@@ -2,6 +2,7 @@ import { Goal, ShieldAlert, Users2, PieChart, Trophy, Target, Hand } from 'lucid
 import { summarize, buildMatchRows, computeQuintetos, matchPlayerByName } from '../statsEngine.js'
 import PlayerAvatar from './PlayerAvatar.jsx'
 import FaseGolStats from './FaseGolStats.jsx'
+import PlayerStatsTable from './PlayerStatsTable.jsx'
 
 function QuintetoRow({ q, max, textColor, barColor, players }) {
   return (
@@ -196,6 +197,7 @@ export default function StatsDashboard({ matches, players }) {
       </div>
 
       <FaseGolStats matches={matches} />
+      <PlayerStatsTable players={players} matches={matches} />
     </>
   )
 }
