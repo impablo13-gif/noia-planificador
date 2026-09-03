@@ -185,6 +185,18 @@ export function removeOpponent(id) {
 export const PUESTOS = ['Portero', 'Cierre', 'Ala', 'Pívot', 'Ala-Cierre', 'Ala-Pívot']
 export const LATERALIDADES = ['Diestro', 'Zurdo', 'Ambidiestro']
 
+// Los 5 ejes del propio modelo de desarrollo del jugador del club (ver
+// assistantPrompt.md) — el radar de cada jugador usa esta escala, no
+// atributos genéricos de videojuego, para que hable el mismo idioma que el
+// resto de la app.
+export const CUALIDADES_EJES = [
+  { key: 'tecnica', label: 'Técnica' },
+  { key: 'tactica', label: 'Táctica' },
+  { key: 'fisico', label: 'Físico' },
+  { key: 'habitos', label: 'Hábitos' },
+  { key: 'emociones', label: 'Emociones' },
+]
+
 export function getPlayers() {
   return readJSON(KEYS.players, [])
 }

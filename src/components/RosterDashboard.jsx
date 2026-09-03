@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Goal, Handshake, Clock, Flame, HeartPulse, BrainCircuit } from 'lucide-react'
+import { Goal, Handshake, Clock, Flame, HeartPulse, BrainCircuit, Radar } from 'lucide-react'
 import PlayerAvatar from './PlayerAvatar.jsx'
+import RadarChart from './RadarChart.jsx'
 import SessionRpePanel from './SessionRpePanel.jsx'
-import { getPartidosNpa, getConceptosCatalogo } from '../db.js'
+import { getPartidosNpa, getConceptosCatalogo, CUALIDADES_EJES } from '../db.js'
 import { computePlayerStats } from '../statsEngine.js'
 import { teamWellnessSnapshot, playerAverageRpe } from '../bienestarStats.js'
 import { formatDateShort, parseISODate } from '../dateUtils.js'
@@ -139,6 +140,38 @@ function TeamWellnessCard({ snap }) {
   )
 }
 
+// Radar de equipo tipo FIFA: media de las cualidades (los 5 ejes del
+// modelo de desarrollo del club) de todos los jugadores que ya tienen algo
+// puntuado — un jugador sin ninguna cualidad rellenada no cuenta en la
+// media, para no arrastrarla a la baja solo por no tener ficha completa.
+function EquipoRadarCard({ players }) {
+  const conDatos = players.filter((p) => p.cualidades && Object.values(p.cualidades).some((v) => v > 0))
+  if (conDatos.length === 0) return null
+
+  const medias = {}
+  CUALIDADES_EJES.forEach((e) => {
+    const suma = conDatos.reduce((s, p) => s + (p.cualidades?.[e.key] || 0), 0)
+    medias[e.key] = suma / conDatos.length
+  })
+
+  return (
+    <div className="card" style={{ padding: 18 }}>
+      <div className="row" style={{ gap: 10, marginBottom: 8 }}>
+        <div className="icon-chip" style={{ '--chip-color': 'var(--red-600)' }}>
+          <Radar size={16} />
+        </div>
+        <h4 style={{ fontSize: 14 }}>Radar del equipo</h4>
+      </div>
+      <p className="text-muted" style={{ fontSize: 12, marginTop: 0, marginBottom: 10 }}>
+        Media de {conDatos.length}/{players.length} jugadores con cualidades puntuadas.
+      </p>
+      <div className="row" style={{ justifyContent: 'center' }}>
+        <RadarChart axes={CUALIDADES_EJES} values={medias} color="var(--blue-600)" />
+      </div>
+    </div>
+  )
+}
+
 // Resumen a nivel de equipo de los conceptos de juego individuales — cuánto
 // del vestuario ya domina cada concepto, para ver de un vistazo dónde hace
 // falta insistir más, sin entrar jugador a jugador.
@@ -229,6 +262,7 @@ export default function RosterDashboard({ players }) {
         unit=" RPE"
         emptyText="Aún no hay respuestas de RPE — sincroniza el cuestionario de bienestar."
       />
+      <EquipoRadarCard players={players} />
       <ConceptosEquipoCard players={players} />
       {wellnessSnap.fecha && (
         <div style={{ gridColumn: '1 / -1' }}>

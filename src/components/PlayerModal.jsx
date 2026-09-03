@@ -6,10 +6,12 @@ import PlayerPhotoField from './PlayerPhotoField.jsx'
 import PlayerStatsPanel from './PlayerStatsPanel.jsx'
 import PlayerLoadPanel from './PlayerLoadPanel.jsx'
 import PlayerConceptosPanel from './PlayerConceptosPanel.jsx'
-import { addPlayer, updatePlayer, removePlayer, PUESTOS, LATERALIDADES } from '../db.js'
+import RadarChart from './RadarChart.jsx'
+import { addPlayer, updatePlayer, removePlayer, PUESTOS, LATERALIDADES, CUALIDADES_EJES } from '../db.js'
 
 const TABS = [
   { id: 'datos', label: 'Datos' },
+  { id: 'cualidades', label: 'Cualidades' },
   { id: 'estadisticas', label: 'Estadísticas' },
   { id: 'carga', label: 'Carga y bienestar' },
   { id: 'conceptos', label: 'Conceptos' },
@@ -33,12 +35,22 @@ export default function PlayerModal({ player, onClose, onSaved }) {
   const [tutorEmail, setTutorEmail] = useState(player.tutorEmail || '')
   const [talla, setTalla] = useState(player.talla || '')
   const [fichaFederativaFileId, setFichaFederativaFileId] = useState(player.fichaFederativaFileId || null)
+  const [cualidades, setCualidades] = useState(() => {
+    const base = {}
+    CUALIDADES_EJES.forEach((e) => { base[e.key] = 0 })
+    return { ...base, ...player.cualidades }
+  })
+
+  function setCualidad(key, value) {
+    setCualidades((c) => ({ ...c, [key]: value }))
+  }
 
   function handleSave() {
     if (!nombre.trim()) return
     const patch = {
       nombre: nombre.trim(), dorsal, posicion, equipo: equipo.trim(), lateralidad, clubProcedencia: clubProcedencia.trim(), fechaNacimiento, fotoFileId, notas, stats,
       tutorNombre: tutorNombre.trim(), tutorTelefono: tutorTelefono.trim(), tutorEmail: tutorEmail.trim(), talla: talla.trim(), fichaFederativaFileId,
+      cualidades,
     }
     if (player.id) {
       updatePlayer(player.id, patch)
@@ -142,6 +154,29 @@ export default function PlayerModal({ player, onClose, onSaved }) {
           <div className="field">
             <label className="field__label">Notas</label>
             <textarea value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Observaciones sobre el jugador…" />
+          </div>
+        </div>
+      )}
+
+      {player.id && tab === 'cualidades' && (
+        <div className="stack">
+          <p className="section-hint" style={{ marginTop: 0 }}>Los 5 ejes del modelo de desarrollo del club — sirve para el radar de la ficha y el resumen de equipo en el dashboard de Plantilla.</p>
+          <div className="row" style={{ justifyContent: 'center', marginBottom: 8 }}>
+            <RadarChart axes={CUALIDADES_EJES} values={cualidades} />
+          </div>
+          <div className="stack" style={{ gap: 14 }}>
+            {CUALIDADES_EJES.map((e) => (
+              <div key={e.key} className="field" style={{ marginBottom: 0 }}>
+                <label className="field__label">{e.label} <span className="field__optional">({cualidades[e.key] || 0}/10)</span></label>
+                <input
+                  type="range"
+                  min="0"
+                  max="10"
+                  value={cualidades[e.key] || 0}
+                  onChange={(ev) => setCualidad(e.key, Number(ev.target.value))}
+                />
+              </div>
+            ))}
           </div>
         </div>
       )}
