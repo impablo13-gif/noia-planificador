@@ -22,12 +22,23 @@ export default function VideoDrawOverlay({ videoRef, onRecorded }) {
   const recordingRef = useRef(false)
   const [recordError, setRecordError] = useState('')
 
+  // El búfer del canvas tiene que ir a resolución de dispositivo (CSS size ×
+  // devicePixelRatio), con el contexto escalado igual, o los trazos salen
+  // borrosos en cualquier pantalla de alta densidad — causa típica de que
+  // una pizarra en canvas se vea "mala" en portátiles modernos.
+  const cssSizeRef = useRef({ w: 0, h: 0 })
+
   function resizeCanvas() {
     const video = videoRef.current
     const canvas = canvasRef.current
     if (!video || !canvas) return
-    canvas.width = video.clientWidth
-    canvas.height = video.clientHeight
+    const dpr = window.devicePixelRatio || 1
+    const w = video.clientWidth
+    const h = video.clientHeight
+    cssSizeRef.current = { w, h }
+    canvas.width = w * dpr
+    canvas.height = h * dpr
+    canvas.getContext('2d').scale(dpr, dpr)
     redraw()
   }
 
@@ -35,7 +46,8 @@ export default function VideoDrawOverlay({ videoRef, onRecorded }) {
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    const { w, h } = cssSizeRef.current
+    ctx.clearRect(0, 0, w, h)
     strokesRef.current.forEach((stroke) => {
       if (stroke.points.length < 2) return
       ctx.strokeStyle = stroke.color
