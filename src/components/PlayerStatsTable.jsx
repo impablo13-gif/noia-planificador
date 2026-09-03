@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { FileSpreadsheet, Users2, Search, Pencil } from 'lucide-react'
+import { FileSpreadsheet, Users2, Search, Pencil, Plus, Trash2 } from 'lucide-react'
 import { computePlayerStats } from '../statsEngine.js'
-import { PUESTOS, updatePartidoNpaPlayer } from '../db.js'
+import { PUESTOS, updatePartidoNpaPlayer, addPartidoNpaPlayer, removePartidoNpaPlayer } from '../db.js'
 import { exportPlayerStatsToExcel } from '../playerStatsExport.js'
 
 const COLUMNS = [
@@ -25,6 +25,7 @@ export default function PlayerStatsTable({ players, matches, teamLabel, onChange
   const [busqueda, setBusqueda] = useState('')
   const [posicionFiltro, setPosicionFiltro] = useState(null)
   const [editing, setEditing] = useState(false)
+  const [nuevoJugador, setNuevoJugador] = useState('')
   // Editar un dato solo tiene sentido viendo un partido concreto — sobre un
   // agregado de varios partidos no habría un partido claro al que aplicar
   // el cambio.
@@ -36,6 +37,19 @@ export default function PlayerStatsTable({ players, matches, teamLabel, onChange
     const n = Math.max(0, Math.round(Number(rawValue)) || 0)
     const value = col.toField ? col.toField(n) : n
     updatePartidoNpaPlayer(editableMatchId, nombre, { [col.field]: value })
+    onChanged?.()
+  }
+
+  function handleAddPlayer() {
+    if (!editableMatchId || !nuevoJugador) return
+    addPartidoNpaPlayer(editableMatchId, nuevoJugador)
+    setNuevoJugador('')
+    onChanged?.()
+  }
+
+  function handleRemovePlayer(nombre) {
+    if (!editableMatchId) return
+    removePartidoNpaPlayer(editableMatchId, nombre)
     onChanged?.()
   }
 
@@ -55,8 +69,12 @@ export default function PlayerStatsTable({ players, matches, teamLabel, onChange
   })
 
   const posicionesPresentes = PUESTOS.filter((pu) => allRows.some((r) => r.posicion === pu))
+  const jugadoresAusentes = players.filter((p) => !allRows.some((r) => r.nombre === p.nombre))
 
-  if (allRows.length === 0) return null
+  // Con un partido en edición se muestra igualmente aunque nadie tenga datos
+  // todavía, para poder añadir jugadores desde cero; en el agregado de
+  // varios partidos, sin filas no hay nada útil que mostrar.
+  if (allRows.length === 0 && !editableMatchId) return null
 
   return (
     <div className="card" style={{ marginTop: 16 }}>
@@ -112,6 +130,21 @@ export default function PlayerStatsTable({ players, matches, teamLabel, onChange
         <p className="text-muted" style={{ fontSize: 11.5, marginTop: 0, marginBottom: 10 }}>Toca "Editando" para guardar y salir del modo edición.</p>
       )}
 
+      {isEditing && jugadoresAusentes.length > 0 && (
+        <div className="row" style={{ gap: 6, marginBottom: 12 }}>
+          <select value={nuevoJugador} onChange={(e) => setNuevoJugador(e.target.value)} style={{ fontSize: 12.5, padding: '5px 8px', maxWidth: 220 }}>
+            <option value="">Añadir jugador que falta…</option>
+            {jugadoresAusentes.map((p) => (
+              <option key={p.id} value={p.nombre}>{p.dorsal ? `#${p.dorsal} ` : ''}{p.nombre}</option>
+            ))}
+          </select>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={handleAddPlayer} disabled={!nuevoJugador}>
+            <Plus size={13} />
+            Añadir
+          </button>
+        </div>
+      )}
+
       <div className="fasegol-table-wrap">
         <table className="fasegol-table">
           <thead>
@@ -121,11 +154,12 @@ export default function PlayerStatsTable({ players, matches, teamLabel, onChange
               {COLUMNS.map((c) => (
                 <th key={c.key} style={{ background: 'var(--ink-700)', color: '#fff' }}>{c.label}</th>
               ))}
+              {isEditing && <th style={{ background: 'var(--ink-700)' }} />}
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
-              <tr><td colSpan={COLUMNS.length + 2} style={{ textAlign: 'center', color: 'var(--ink-500)', padding: 14 }}>Sin jugadores que coincidan con el filtro.</td></tr>
+              <tr><td colSpan={COLUMNS.length + 2 + (isEditing ? 1 : 0)} style={{ textAlign: 'center', color: 'var(--ink-500)', padding: 14 }}>Sin jugadores que coincidan con el filtro.</td></tr>
             ) : (
               rows.map((r) => (
                 <tr key={r.nombre}>
@@ -148,6 +182,13 @@ export default function PlayerStatsTable({ players, matches, teamLabel, onChange
                       )}
                     </td>
                   ))}
+                  {isEditing && (
+                    <td>
+                      <button type="button" className="btn btn-ghost btn-sm btn-icon" onClick={() => handleRemovePlayer(r.nombre)} title="Quitar del partido">
+                        <Trash2 size={12} color="var(--danger-600)" />
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))
             )}

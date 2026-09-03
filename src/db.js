@@ -360,6 +360,31 @@ export function updatePartidoNpa(matchId, patch) {
   return next
 }
 
+// Añade a mano un jugador a un partido ya importado (por si NPA Stats no lo
+// trajo — un despiste al pasar lista, un jugador citado a última hora…), con
+// sus datos a cero para ir corrigiéndolos desde la propia tabla editable.
+export function addPartidoNpaPlayer(matchId, playerName) {
+  const next = getPartidosNpa().map((m) => {
+    if (m.id !== matchId) return m
+    if ((m.players || []).some((p) => p.name === playerName)) return m
+    const empty = { name: playerName, goals: 0, assists: 0, shotsOn: 0, shotsOff: 0, shotsPost: 0, saves: 0, fouls: 0, yellow: 0, red: 0, turnovers: 0, recoveries: 0, seconds: 0 }
+    return { ...m, players: [...(m.players || []), empty] }
+  })
+  savePartidosNpa(next)
+  return next
+}
+
+// Quita del partido a un jugador añadido por error (el mismo criterio: solo
+// tiene sentido corregir un partido concreto, no un agregado de varios).
+export function removePartidoNpaPlayer(matchId, playerName) {
+  const next = getPartidosNpa().map((m) => {
+    if (m.id !== matchId) return m
+    return { ...m, players: (m.players || []).filter((p) => p.name !== playerName) }
+  })
+  savePartidosNpa(next)
+  return next
+}
+
 // Alias nombre-de-NPA-Stats → jugador y equipo-de-NPA-Stats → equipo de la
 // Plantilla: el nombre/equipo que Pablo escribe en NPA Stats casi nunca
 // coincide letra por letra con la Plantilla (motes, acentos, "NOIA PORTUS
