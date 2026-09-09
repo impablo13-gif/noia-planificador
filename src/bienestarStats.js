@@ -1,7 +1,7 @@
 // Cálculos derivados de las respuestas de bienestar/RPE, compartidos entre la
 // ficha de jugador, los modales de entreno/partido y el dashboard de Plantilla.
 
-import { getBienestar, upsertBienestar, removeBienestarEntry } from './db.js'
+import { getBienestar, upsertBienestar, removeBienestarEntry, getInjuries } from './db.js'
 import { getEventsInRange } from './eventsEngine.js'
 import { parseISODate, toISODate, addDays } from './dateUtils.js'
 
@@ -190,6 +190,41 @@ export function teamBienestarDates(players) {
   const playerIds = new Set(players.map((p) => p.id))
   const fechas = new Set(scheduledBienestar().filter((e) => playerIds.has(e.playerId)).map((e) => e.fecha))
   return [...fechas].sort()
+}
+
+// Jugadores a vigilar ahora mismo: última respuesta de bienestar floja,
+// dolor reportado, o lesión activa -- para verlo de un vistazo en vez de
+// tener que repasar jugador a jugador. Solo entran quienes tienen algo que
+// mostrar (una respuesta registrada o una lesión activa); un jugador sin
+// ningún dato no es "de riesgo", simplemente no ha respondido todavía.
+// Devuelve la lista ordenada de peor a mejor -- los marcados en riesgo
+// siempre primero, y dentro de cada grupo por bienestar ascendente -- así la
+// misma lista sirve a la vez de "en riesgo" y de "los que peor están".
+export function teamRiskPlayers(players) {
+  const latestByPlayer = latestBienestarByPlayer()
+  const injuryByPlayer = {}
+  getInjuries().filter((i) => i.estado === 'Activa').forEach((i) => { injuryByPlayer[i.playerId] = i })
+
+  return players
+    .map((p) => {
+      const entry = latestByPlayer[p.id] || null
+      const score = wellnessScore(entry)
+      const injury = injuryByPlayer[p.id] || null
+      const flags = []
+      if (injury) flags.push(`Lesión activa (${injury.zona}${injury.tipo ? `, ${injury.tipo}` : ''})`)
+      if (entry?.dolorZona && !/sin dolor/i.test(entry.dolorZona)) flags.push(`Dolor en ${entry.dolorZona}`)
+      if (entry?.fatiga >= 4) flags.push(`Fatiga alta (${entry.fatiga}/5)`)
+      if (entry?.estres >= 4) flags.push(`Estrés alto (${entry.estres}/5)`)
+      if (score != null && score <= 2.5) flags.push(`Bienestar bajo (${score.toFixed(1)}/5)`)
+      return { player: p, entry, score, flags, enRiesgo: flags.length > 0 }
+    })
+    .filter((r) => r.entry || r.enRiesgo)
+    .sort((a, b) => {
+      if (a.enRiesgo !== b.enRiesgo) return a.enRiesgo ? -1 : 1
+      const as = a.score ?? 99
+      const bs = b.score ?? 99
+      return as - bs
+    })
 }
 
 // Reparto de zonas de dolor reportadas (excluyendo "Sin dolor"), de más a

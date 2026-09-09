@@ -242,7 +242,7 @@ export default function StatsDashboard({ matches, players, onChanged }) {
 
       </div>
 
-      <FaseGolStats matches={matches} />
+      <FaseGolStats matches={matches} onChanged={onChanged} />
       <PlayerStatsTable players={players} matches={matches} onChanged={onChanged} />
     </>
   )

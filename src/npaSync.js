@@ -251,7 +251,7 @@ async function applyParsedMatches(parsedMatches, players) {
       const fresh = {
         id: newId, date: dayISO, time: pm.startTime || '', competition: 'Amistoso', vuelta: null,
         equipo: pm.equipo, superficie: '', observaciones: '', opponentId: null, isHome: null,
-        resultText, reportText: '', reportFileId: null, npaMatchId: pm.id, status: 'jugado',
+        resultText, reportText: '', reportFileIds: [], npaMatchId: pm.id, status: 'jugado',
         npaReportFileId: null, npaReportGeneratedAt: null,
       }
       if (pm.reportHtml) {

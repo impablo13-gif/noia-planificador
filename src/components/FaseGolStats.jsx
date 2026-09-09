@@ -4,10 +4,93 @@
 // Todo sale de goalEvents[].phase, que NPA Stats ya etiqueta gol a gol -- no
 // hace falta teclear nada aparte, solo tener los partidos importados.
 import { useState } from 'react'
-import { FileSpreadsheet, PieChart, Search } from 'lucide-react'
+import { FileSpreadsheet, PieChart, Search, Pencil, Plus, Trash2, Goal, ShieldAlert } from 'lucide-react'
 import { computeFaseGolStats, GOAL_PHASES, GOAL_PHASE_GROUPS } from '../statsEngine.js'
 import { parseISODate, formatDateShort } from '../dateUtils.js'
 import { exportFaseGolStatsToExcel } from '../faseGolExport.js'
+import { updatePartidoGoalEvent, addPartidoGoalEvent, removePartidoGoalEvent } from '../db.js'
+
+// Lista de goles del partido, editable gol a gol -- corrige la fase que NPA
+// Stats etiquetó mal (o "Sin especificar"), y permite añadir uno que no se
+// registrara o quitar uno duplicado. Solo aparece con un único partido
+// abierto: sobre un agregado de varios no hay un gol concreto al que aplicar
+// el cambio.
+function GoalEventsEditor({ matchId, goalEvents, onChanged }) {
+  const [addingType, setAddingType] = useState(null) // 'for' | 'against' | null
+
+  function handlePhaseChange(eventId, phase) {
+    updatePartidoGoalEvent(matchId, eventId, { phase })
+    onChanged?.()
+  }
+
+  function handleRemove(eventId) {
+    removePartidoGoalEvent(matchId, eventId)
+    onChanged?.()
+  }
+
+  function handleAdd(phase) {
+    addPartidoGoalEvent(matchId, { type: addingType, phase })
+    setAddingType(null)
+    onChanged?.()
+  }
+
+  const events = goalEvents || []
+
+  return (
+    <div className="card" style={{ marginBottom: 14 }}>
+      <div className="leaderboard-card__head">
+        <div className="icon-chip" style={{ '--chip-color': 'var(--red-600)' }}><PieChart size={15} /></div>
+        <h4>Goles del partido, gol a gol</h4>
+      </div>
+      {events.length === 0 && !addingType && (
+        <p className="text-muted" style={{ fontSize: 12.5, marginBottom: 10 }}>Sin goles registrados en este partido.</p>
+      )}
+      <div className="stack" style={{ gap: 6, marginBottom: 10 }}>
+        {events.map((ev) => (
+          <div key={ev.id} className="row" style={{ gap: 8, alignItems: 'center' }}>
+            {ev.type === 'for' ? <Goal size={14} color="var(--red-600)" /> : <ShieldAlert size={14} color="var(--blue-600)" />}
+            <span style={{ fontSize: 12.5, width: 90, flexShrink: 0, color: 'var(--ink-500)' }}>{ev.type === 'for' ? 'A favor' : 'En contra'}</span>
+            {ev.authorName && <span style={{ fontSize: 12.5, flexShrink: 0 }}>{ev.authorName}</span>}
+            <select value={ev.phase || ''} onChange={(e) => handlePhaseChange(ev.id, e.target.value)} style={{ fontSize: 12.5, padding: '4px 6px', marginLeft: 'auto' }}>
+              <option value="">Sin especificar</option>
+              {GOAL_PHASES.map((p) => (
+                <option key={p.key} value={p.key}>{p.label}</option>
+              ))}
+            </select>
+            <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={() => handleRemove(ev.id)} title="Quitar este gol">
+              <Trash2 size={12} color="var(--danger-600)" />
+            </button>
+          </div>
+        ))}
+      </div>
+      {addingType ? (
+        <div className="row" style={{ gap: 8, alignItems: 'center' }}>
+          <span style={{ fontSize: 12.5 }}>Nuevo gol {addingType === 'for' ? 'a favor' : 'en contra'} · fase:</span>
+          <select
+            onChange={(e) => handleAdd(e.target.value)}
+            defaultValue=""
+            style={{ fontSize: 12.5, padding: '4px 6px' }}
+          >
+            <option value="" disabled>Elige fase…</option>
+            {GOAL_PHASES.map((p) => (
+              <option key={p.key} value={p.key}>{p.label}</option>
+            ))}
+          </select>
+          <button type="button" className="link-btn" onClick={() => setAddingType(null)}>Cancelar</button>
+        </div>
+      ) : (
+        <div className="row" style={{ gap: 8 }}>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => setAddingType('for')}>
+            <Plus size={12} /> Gol a favor que falta
+          </button>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => setAddingType('against')}>
+            <Plus size={12} /> Gol en contra que falta
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
 
 function Donut({ segments, size = 108, strokeWidth = 17 }) {
   const active = segments.filter((s) => s.value > 0)
@@ -84,8 +167,13 @@ function CompareBar({ label, color, forValue, againstValue, max }) {
   )
 }
 
-export default function FaseGolStats({ matches, teamLabel }) {
+export default function FaseGolStats({ matches, teamLabel, onChanged }) {
   const [busqueda, setBusqueda] = useState('')
+  const [editing, setEditing] = useState(false)
+  // Editar gol a gol solo tiene sentido viendo un partido concreto -- sobre
+  // un agregado de varios no habría un partido claro al que aplicar el cambio.
+  const editableMatch = matches.length === 1 ? matches[0] : null
+  const isEditing = editing && !!editableMatch
   const { rows, totalsFor, totalsAgainst } = computeFaseGolStats(matches)
   const totalForAll = Object.values(totalsFor).reduce((a, b) => a + b, 0)
   const totalAgainstAll = Object.values(totalsAgainst).reduce((a, b) => a + b, 0)
@@ -130,6 +218,17 @@ export default function FaseGolStats({ matches, teamLabel }) {
           <div className="leaderboard-card__head" style={{ margin: 0 }}>
             <div className="icon-chip" style={{ '--chip-color': 'var(--red-600)' }}><PieChart size={15} /></div>
             <h4>Marcador de fases, partido a partido</h4>
+            {editableMatch && (
+              <button
+                type="button"
+                className={`btn btn-sm ${isEditing ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setEditing((v) => !v)}
+                title={isEditing ? 'Dejar de editar' : 'Corregir los goles de este partido'}
+              >
+                <Pencil size={12} />
+                {isEditing ? 'Editando' : 'Editar'}
+              </button>
+            )}
           </div>
           <div className="row" style={{ gap: 8 }}>
             <div className="field" style={{ marginBottom: 0, position: 'relative' }}>
@@ -148,6 +247,10 @@ export default function FaseGolStats({ matches, teamLabel }) {
             </button>
           </div>
         </div>
+
+        {isEditing && (
+          <GoalEventsEditor matchId={editableMatch.id} goalEvents={editableMatch.goalEvents} onChanged={onChanged} />
+        )}
 
         <div className="fasegol-table-wrap">
           <table className="fasegol-table">

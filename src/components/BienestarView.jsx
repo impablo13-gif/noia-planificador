@@ -1,12 +1,13 @@
 import { useState } from 'react'
-import { Flame, HeartPulse, Moon, Zap, Bone, BatteryMedium, Gauge, MapPin, TrendingUp, ChevronLeft, ChevronRight, Filter, X } from 'lucide-react'
+import { Flame, HeartPulse, Moon, Zap, Bone, BatteryMedium, Gauge, MapPin, TrendingUp, ChevronLeft, ChevronRight, Filter, X, ShieldAlert } from 'lucide-react'
 import { getPlayers } from '../db.js'
-import { teamWellnessSnapshot, teamMetricTrend, teamBienestarDates, teamPainBreakdown } from '../bienestarStats.js'
+import { teamWellnessSnapshot, teamMetricTrend, teamBienestarDates, teamPainBreakdown, teamRiskPlayers } from '../bienestarStats.js'
 import { formatDateShort, parseISODate } from '../dateUtils.js'
 import TrendChart from './TrendChart.jsx'
 import PageHeader from './PageHeader.jsx'
 import SessionRpePanel from './SessionRpePanel.jsx'
 import WellnessDayPanel from './WellnessDayPanel.jsx'
+import PlayerAvatar from './PlayerAvatar.jsx'
 
 const MODOS = [
   { id: 'general', label: 'General (mezcla)' },
@@ -92,6 +93,63 @@ function MetricTrendCard({ metric, players }) {
         </span>
       </div>
       <TrendChart data={trend} color={metric.color} min={metric.min} max={metric.max} height={70} maxPoints={10} />
+    </div>
+  )
+}
+
+// Tarjeta fija (independiente del modo General/Wellness/RPE elegido) con
+// quién hay que vigilar ahora mismo: lesión activa, dolor reportado, fatiga o
+// estrés altos, o bienestar general bajo -- y, debajo, el resto del equipo
+// ordenado de peor a mejor bienestar, para que "los que peor están" salga de
+// la misma lista sin tener que construir otra aparte.
+function RiskCard({ players }) {
+  const rows = teamRiskPlayers(players)
+  const enRiesgo = rows.filter((r) => r.enRiesgo)
+
+  if (rows.length === 0) return null
+
+  return (
+    <div className="card">
+      <div className="leaderboard-card__head">
+        <div className="icon-chip" style={{ '--chip-color': 'var(--danger-600)' }}><ShieldAlert size={15} /></div>
+        <h4>Jugadores a vigilar</h4>
+      </div>
+      {enRiesgo.length === 0 ? (
+        <p className="text-muted" style={{ fontSize: 12.5, marginBottom: 10 }}>Nadie en riesgo según la última respuesta -- lista completa ordenada de peor a mejor bienestar debajo.</p>
+      ) : (
+        <p className="field__help" style={{ marginTop: 0, marginBottom: 10 }}>{enRiesgo.length} jugador{enRiesgo.length === 1 ? '' : 'es'} con algo que vigilar ahora mismo.</p>
+      )}
+      <div className="stack" style={{ gap: 6 }}>
+        {rows.map(({ player, score, flags, enRiesgo: risky }) => (
+          <div
+            key={player.id}
+            className="row spread"
+            style={{
+              gap: 10,
+              padding: '7px 10px',
+              borderRadius: 'var(--radius-sm)',
+              background: risky ? 'color-mix(in srgb, var(--danger-600) 8%, transparent)' : 'var(--gray-50)',
+              alignItems: 'flex-start',
+            }}
+          >
+            <div className="row" style={{ gap: 8, minWidth: 0 }}>
+              <PlayerAvatar fileId={player.fotoFileId} size="sm" />
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600 }}>{player.nombre}</div>
+                {flags.length > 0 && (
+                  <div style={{ fontSize: 11.5, color: 'var(--danger-600)' }}>{flags.join(' · ')}</div>
+                )}
+              </div>
+            </div>
+            <span
+              className={`badge ${score == null ? '' : score >= 4 ? 'badge-success' : score >= 3 ? 'badge-gold' : 'badge-danger'}`}
+              style={{ flexShrink: 0 }}
+            >
+              <HeartPulse size={11} /> {score != null ? `${score.toFixed(1)}/5` : 'sin dato'}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -217,6 +275,8 @@ export default function BienestarView() {
           )}
         </div>
       )}
+
+      <RiskCard players={equipoPlayers} />
 
       {modo === 'general' && (
         <div className="stack">

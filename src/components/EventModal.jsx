@@ -16,7 +16,7 @@ export default function EventModal({ date, events, opponents, onClose, onOpenTra
   }
 
   function newMatchDraft() {
-    return { id: null, date: iso, time: '', competition: 'Amistoso', opponentId: '', isHome: true, resultText: '', reportText: '', reportFileId: null, status: 'pendiente' }
+    return { id: null, date: iso, time: '', competition: 'Amistoso', opponentId: '', isHome: true, resultText: '', reportText: '', reportFileIds: [], status: 'pendiente' }
   }
 
   return (

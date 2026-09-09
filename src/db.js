@@ -385,6 +385,42 @@ export function removePartidoNpaPlayer(matchId, playerName) {
   return next
 }
 
+// Corrige a mano la fase (u otro campo) de un gol ya importado -- NPA Stats
+// etiqueta la fase en directo y a veces se equivoca o se queda "Sin
+// especificar"; solo tiene sentido sobre un partido concreto.
+export function updatePartidoGoalEvent(matchId, eventId, patch) {
+  const next = getPartidosNpa().map((m) => {
+    if (m.id !== matchId) return m
+    const goalEvents = (m.goalEvents || []).map((ev) => (ev.id === eventId ? { ...ev, ...patch } : ev))
+    return { ...m, goalEvents }
+  })
+  savePartidosNpa(next)
+  return next
+}
+
+// Añade a mano un gol que NPA Stats no registró (fallo de conexión durante
+// el partido, gol en propia que se les pasó…), con la fase que se indique;
+// autor y jugadores en pista se pueden completar luego editando el evento.
+export function addPartidoGoalEvent(matchId, { type, phase }) {
+  const next = getPartidosNpa().map((m) => {
+    if (m.id !== matchId) return m
+    const event = { id: uid(), type, phase, authorName: '', onCourt: [] }
+    return { ...m, goalEvents: [...(m.goalEvents || []), event] }
+  })
+  savePartidosNpa(next)
+  return next
+}
+
+// Quita un gol añadido por error o duplicado por la sincronización.
+export function removePartidoGoalEvent(matchId, eventId) {
+  const next = getPartidosNpa().map((m) => {
+    if (m.id !== matchId) return m
+    return { ...m, goalEvents: (m.goalEvents || []).filter((ev) => ev.id !== eventId) }
+  })
+  savePartidosNpa(next)
+  return next
+}
+
 // Alias nombre-de-NPA-Stats → jugador y equipo-de-NPA-Stats → equipo de la
 // Plantilla: el nombre/equipo que Pablo escribe en NPA Stats casi nunca
 // coincide letra por letra con la Plantilla (motes, acentos, "NOIA PORTUS

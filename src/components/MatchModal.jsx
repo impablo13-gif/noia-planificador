@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Save, Trash2, House, Plane, ShieldHalf, Goal, ShieldAlert, FileText, ExternalLink, Flame, ClipboardList, Timer } from 'lucide-react'
 import Modal from './Modal.jsx'
-import FileDrop from './FileDrop.jsx'
+import MultiFileDrop from './MultiFileDrop.jsx'
 import ShieldPhotoField from './ShieldPhotoField.jsx'
 import PlayerAvatar from './PlayerAvatar.jsx'
 import SessionRpePanel from './SessionRpePanel.jsx'
@@ -119,7 +119,9 @@ export default function MatchModal({ match, opponents, onClose, onSaved, onGoToR
   const [isHome, setIsHome] = useState(match.isHome ?? true)
   const [resultText, setResultText] = useState(match.resultText || '')
   const [reportText, setReportText] = useState(match.reportText || '')
-  const [reportFileId, setReportFileId] = useState(match.reportFileId || null)
+  // Migra el antiguo campo de un solo archivo (reportFileId) a la lista, si
+  // el partido todavía no se ha vuelto a guardar desde que existen varios.
+  const [reportFileIds, setReportFileIds] = useState(match.reportFileIds || (match.reportFileId ? [match.reportFileId] : []))
   const [status, setStatus] = useState(match.status || 'pendiente')
   const [horaCitacion, setHoraCitacion] = useState(match.horaCitacion || '')
   const [calentamientoUrl, setCalentamientoUrl] = useState(match.calentamientoUrl || '')
@@ -149,7 +151,8 @@ export default function MatchModal({ match, opponents, onClose, onSaved, onGoToR
       isHome,
       resultText,
       reportText,
-      reportFileId,
+      reportFileIds,
+      reportFileId: null,
       status,
       horaCitacion,
       calentamientoUrl,
@@ -404,7 +407,8 @@ export default function MatchModal({ match, opponents, onClose, onSaved, onGoToR
 
         <div className="field">
           <label className="field__label">Adjuntar informe (PDF, foto del acta…)</label>
-          <FileDrop fileId={reportFileId} onChange={setReportFileId} accept=".pdf,image/*,.doc,.docx" label="Subir informe" />
+          <MultiFileDrop fileIds={reportFileIds} onChange={setReportFileIds} accept=".pdf,image/*,.doc,.docx" label="Subir informe" />
+          <p className="field__help">Puedes adjuntar más de un archivo: el informe, una foto del acta, lo que haga falta.</p>
         </div>
       </div>
 
