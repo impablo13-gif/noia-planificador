@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Save, Trash2, MapPin, Phone, User, Video, Plus, ChevronRight } from 'lucide-react'
 import Modal from './Modal.jsx'
 import ShieldPhotoField from './ShieldPhotoField.jsx'
+import MultiFileDrop from './MultiFileDrop.jsx'
 import { updateOpponent, removeOpponent, addOpponent, getAnalisisProyectos, addAnalisisProyecto, getAnalisisEventos } from '../db.js'
 
 export default function OpponentModal({ opponent, onClose, onSaved, onGoToAnalisis }) {
@@ -14,6 +15,7 @@ export default function OpponentModal({ opponent, onClose, onSaved, onGoToAnalis
     ...opponent.scouting,
   })
   const [highlightsText, setHighlightsText] = useState((opponent.scouting?.highlights || []).join('\n'))
+  const [scoutingFileIds, setScoutingFileIds] = useState(opponent.scoutingFileIds || [])
 
   function setField(key, value) {
     setScouting((s) => ({ ...s, [key]: value }))
@@ -21,7 +23,7 @@ export default function OpponentModal({ opponent, onClose, onSaved, onGoToAnalis
 
   function handleSave() {
     const highlights = highlightsText.split('\n').map((l) => l.trim()).filter(Boolean).slice(0, 4)
-    const patch = { name, siglas: siglas.trim().toUpperCase(), shieldFileId, scouting: { ...scouting, highlights } }
+    const patch = { name, siglas: siglas.trim().toUpperCase(), shieldFileId, scouting: { ...scouting, highlights }, scoutingFileIds }
     if (opponent.id) {
       updateOpponent(opponent.id, patch)
     } else {
@@ -172,6 +174,11 @@ export default function OpponentModal({ opponent, onClose, onSaved, onGoToAnalis
         <div className="field">
           <label className="field__label">Notas libres</label>
           <textarea value={scouting.notasLibres} onChange={(e) => setField('notasLibres', e.target.value)} />
+        </div>
+
+        <div className="field">
+          <label className="field__label">Documentos de scouting <span className="field__optional">(opcional)</span></label>
+          <MultiFileDrop fileIds={scoutingFileIds} onChange={setScoutingFileIds} accept=".pdf,image/*,.doc,.docx" label="Subir documento" />
         </div>
 
         <div className="field">

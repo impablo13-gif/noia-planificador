@@ -1,13 +1,15 @@
 import { useState } from 'react'
-import { Swords, House, Plane, ArrowRight, ClipboardList } from 'lucide-react'
+import { Swords, House, Plane, ArrowRight, ClipboardList, Paperclip } from 'lucide-react'
 import { toISODate, formatDateLong } from '../dateUtils.js'
-import { getPlayers } from '../db.js'
+import { getPlayers, updateOpponent } from '../db.js'
 import MatchPlanModal from './MatchPlanModal.jsx'
+import MultiFileDrop from './MultiFileDrop.jsx'
 
 // Localiza el próximo partido de Liga (a partir de hoy) y muestra el nombre
 // del rival + 3-4 pinceladas de su ficha de scouting.
-export default function WeekRivalCard({ matches, opponents, onGoToRival }) {
+export default function WeekRivalCard({ matches, opponents, onGoToRival, onChanged }) {
   const [showPlan, setShowPlan] = useState(false)
+  const [showAttach, setShowAttach] = useState(false)
   const todayISO = toISODate(new Date())
   const upcoming = matches
     .filter((m) => m.competition === 'Liga' && m.date >= todayISO)
@@ -24,6 +26,13 @@ export default function WeekRivalCard({ matches, opponents, onGoToRival }) {
 
   const opponent = opponents.find((o) => o.id === upcoming.opponentId)
   const highlights = opponent?.scouting?.highlights?.filter(Boolean).slice(0, 4) || []
+  const scoutingFileIds = opponent?.scoutingFileIds || []
+
+  function handleScoutingFilesChange(ids) {
+    if (!opponent) return
+    updateOpponent(opponent.id, { scoutingFileIds: ids })
+    onChanged?.()
+  }
 
   return (
     <div className="rival-card">
@@ -49,6 +58,29 @@ export default function WeekRivalCard({ matches, opponents, onGoToRival }) {
         <p style={{ fontSize: 13, opacity: 0.85, marginBottom: 12 }}>
           Aún no hay pinceladas de scouting guardadas para este rival.
         </p>
+      )}
+
+      {opponent && (
+        <div style={{ marginBottom: 8 }}>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => setShowAttach((v) => !v)}
+          >
+            <Paperclip size={13} />
+            {scoutingFileIds.length > 0 ? `${scoutingFileIds.length} documento${scoutingFileIds.length === 1 ? '' : 's'} de scouting` : 'Adjuntar documento de scouting'}
+          </button>
+          {showAttach && (
+            <div style={{ marginTop: 8 }}>
+              <MultiFileDrop
+                fileIds={scoutingFileIds}
+                onChange={handleScoutingFilesChange}
+                accept=".pdf,image/*,.doc,.docx"
+                label="Subir documento"
+              />
+            </div>
+          )}
+        </div>
       )}
 
       <div className="row" style={{ gap: 8, marginTop: 8 }}>
