@@ -54,16 +54,19 @@ function scheduledBienestar() {
   return getBienestar().filter((e) => isScheduledSessionDay(e.fecha))
 }
 
-// Puntuación compuesta 1-5: estrés y fatiga se invierten (alto = peor ahí),
-// el resto (sueño/dolor ausente/energía/condición) alto = mejor.
+// Puntuación compuesta 1-5: en el cuestionario real (Google Forms), los 6
+// campos usan la misma dirección de escala -- 1 es siempre el lado malo
+// (Muy estresado, Mala, Muy dolorido, Muy baja, Muy fatigado, Muy mala) y 5
+// el lado bueno (Muy relajado, Excelente, Sin dolor, Muy alta, Sin fatiga,
+// Muy buena) -- así que ninguno se invierte, todos suman directos.
 export function wellnessScore(entry) {
   if (!entry) return null
   const vals = []
-  if (entry.estres != null) vals.push(6 - entry.estres)
+  if (entry.estres != null) vals.push(entry.estres)
   if (entry.sueno != null) vals.push(entry.sueno)
   if (entry.dolorMuscular != null) vals.push(entry.dolorMuscular)
   if (entry.energia != null) vals.push(entry.energia)
-  if (entry.fatiga != null) vals.push(6 - entry.fatiga)
+  if (entry.fatiga != null) vals.push(entry.fatiga)
   if (entry.condicionGeneral != null) vals.push(entry.condicionGeneral)
   if (!vals.length) return null
   return vals.reduce((s, v) => s + v, 0) / vals.length
@@ -213,8 +216,11 @@ export function teamRiskPlayers(players) {
       const flags = []
       if (injury) flags.push(`Lesión activa (${injury.zona}${injury.tipo ? `, ${injury.tipo}` : ''})`)
       if (entry?.dolorZona && !/sin dolor/i.test(entry.dolorZona)) flags.push(`Dolor en ${entry.dolorZona}`)
-      if (entry?.fatiga >= 4) flags.push(`Fatiga alta (${entry.fatiga}/5)`)
-      if (entry?.estres >= 4) flags.push(`Estrés alto (${entry.estres}/5)`)
+      // En la escala real, 1 es el lado malo (Muy fatigado / Muy estresado) y
+      // 5 el bueno (Sin fatiga / Muy relajado) -- el riesgo está en valores
+      // BAJOS de estos dos campos, no en los altos.
+      if (entry?.fatiga <= 2) flags.push(`Fatiga alta (${entry.fatiga}/5)`)
+      if (entry?.estres <= 2) flags.push(`Estrés alto (${entry.estres}/5)`)
       if (score != null && score <= 2.5) flags.push(`Bienestar bajo (${score.toFixed(1)}/5)`)
       return { player: p, entry, score, flags, enRiesgo: flags.length > 0 }
     })

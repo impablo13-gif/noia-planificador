@@ -34,16 +34,18 @@ function BarChart({ values, color, min, max, width = 100, height = 44, barWidth 
   )
 }
 
-// "Mejor" y "peor" van en direcciones distintas según la métrica: estrés y
-// fatiga altos son malos, el resto (sueño/dolor-ausente/energía/condición)
-// alto es bueno. `invert` compensa eso para que el color siempre siga la
-// misma lógica (verde=bien, rojo=mal) aunque el número no.
+// En el cuestionario real, los 6 campos usan la misma dirección de escala:
+// 1 es siempre el lado malo (Muy estresado, Mala, Muy dolorido, Muy baja,
+// Muy fatigado, Muy mala) y 5 el lado bueno (Muy relajado, Excelente, Sin
+// dolor, Muy alta, Sin fatiga, Muy buena) -- ninguno se invierte. `invert`
+// se deja como opción del componente por si algún día hace falta, pero hoy
+// no la usa ningún campo real.
 const METRICS = [
   { key: 'sueno', label: 'Sueño', icon: Moon, min: 1, max: 5, invert: false },
-  { key: 'estres', label: 'Estrés', icon: Zap, min: 1, max: 5, invert: true },
+  { key: 'estres', label: 'Estrés', icon: Zap, min: 1, max: 5, invert: false },
   { key: 'dolorMuscular', label: 'Dolor muscular', icon: Bone, min: 1, max: 5, invert: false },
   { key: 'energia', label: 'Energía', icon: BatteryMedium, min: 1, max: 5, invert: false },
-  { key: 'fatiga', label: 'Fatiga', icon: Gauge, min: 1, max: 5, invert: true },
+  { key: 'fatiga', label: 'Fatiga', icon: Gauge, min: 1, max: 5, invert: false },
   { key: 'condicionGeneral', label: 'Condición', icon: HeartPulse, min: 1, max: 5, invert: false },
 ]
 

@@ -16,11 +16,11 @@ const MODOS = [
 ]
 
 const WELLNESS_METRICS = [
-  { key: 'estres', label: 'Estrés', icon: Zap, min: 1, max: 5, invert: true, color: 'var(--warn-600)' },
+  { key: 'estres', label: 'Estrés', icon: Zap, min: 1, max: 5, invert: false, color: 'var(--warn-600)' },
   { key: 'sueno', label: 'Sueño', icon: Moon, min: 1, max: 5, invert: false, color: 'var(--blue-600)' },
   { key: 'dolorMuscular', label: 'Dolor muscular', icon: Bone, min: 1, max: 5, invert: false, color: 'var(--danger-600)' },
   { key: 'energia', label: 'Energía', icon: BatteryMedium, min: 1, max: 5, invert: false, color: 'var(--success-600)' },
-  { key: 'fatiga', label: 'Fatiga', icon: Gauge, min: 1, max: 5, invert: true, color: 'var(--orange-600)' },
+  { key: 'fatiga', label: 'Fatiga', icon: Gauge, min: 1, max: 5, invert: false, color: 'var(--orange-600)' },
   { key: 'condicionGeneral', label: 'Condición', icon: HeartPulse, min: 1, max: 5, invert: false, color: 'var(--red-600)' },
 ]
 
