@@ -56,40 +56,40 @@ export default function BackupControls() {
   }
 
   return (
-    <div className="row" style={{ gap: 10, flexWrap: 'nowrap' }}>
-      <div style={{ textAlign: 'right', fontSize: 10.5, color: 'rgba(255,255,255,0.65)', lineHeight: 1.3 }}>
-        Copia de seguridad
-        <br />
-        última: {timeAgo(lastBackupAt)}
+    <div className="stack" style={{ gap: 8 }}>
+      <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.65)', lineHeight: 1.3 }}>
+        Copia de seguridad · última: {timeAgo(lastBackupAt)}
       </div>
-      <button
-        type="button"
-        onClick={handleExport}
-        disabled={busy}
-        title="Descarga toda la app (plantilla, calendario, bienestar, lesiones, fotos…) en un archivo"
-        style={{
-          appearance: 'none', border: '1.5px solid rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.08)',
-          color: '#fff', borderRadius: 8, padding: '7px 10px', display: 'inline-flex', alignItems: 'center', gap: 6,
-          fontSize: 12.5, fontWeight: 600, cursor: busy ? 'not-allowed' : 'pointer',
-        }}
-      >
-        {busy ? <Loader2 size={14} style={{ animation: 'spin 0.7s linear infinite' }} /> : <Download size={14} />}
-        Exportar
-      </button>
-      <label
-        title="Restaura una copia de seguridad descargada antes (sustituye los datos actuales)"
-        style={{
-          appearance: 'none', border: '1.5px solid rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.08)',
-          color: '#fff', borderRadius: 8, padding: '7px 10px', display: 'inline-flex', alignItems: 'center', gap: 6,
-          fontSize: 12.5, fontWeight: 600, cursor: busy ? 'not-allowed' : 'pointer',
-        }}
-      >
-        <Upload size={14} />
-        Restaurar
-        <input type="file" accept="application/json,.json" onChange={handleImportFile} disabled={busy} style={{ display: 'none' }} />
-      </label>
+      <div className="row" style={{ gap: 8 }}>
+        <button
+          type="button"
+          onClick={handleExport}
+          disabled={busy}
+          title="Descarga toda la app (plantilla, calendario, bienestar, lesiones, fotos…) en un archivo"
+          style={{
+            appearance: 'none', border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.08)',
+            color: '#fff', borderRadius: 8, padding: '7px 10px', display: 'inline-flex', alignItems: 'center', gap: 6,
+            fontSize: 12.5, fontWeight: 600, cursor: busy ? 'not-allowed' : 'pointer', flex: 1, justifyContent: 'center',
+          }}
+        >
+          {busy ? <Loader2 size={14} style={{ animation: 'spin 0.7s linear infinite' }} /> : <Download size={14} />}
+          Exportar
+        </button>
+        <label
+          title="Restaura una copia de seguridad descargada antes (sustituye los datos actuales)"
+          style={{
+            appearance: 'none', border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.08)',
+            color: '#fff', borderRadius: 8, padding: '7px 10px', display: 'inline-flex', alignItems: 'center', gap: 6,
+            fontSize: 12.5, fontWeight: 600, cursor: busy ? 'not-allowed' : 'pointer', flex: 1, justifyContent: 'center',
+          }}
+        >
+          <Upload size={14} />
+          Restaurar
+          <input type="file" accept="application/json,.json" onChange={handleImportFile} disabled={busy} style={{ display: 'none' }} />
+        </label>
+      </div>
       {msg && (
-        <span style={{ fontSize: 11.5, color: '#fff', maxWidth: 220 }}>{msg}</span>
+        <span style={{ fontSize: 11.5, color: '#fff' }}>{msg}</span>
       )}
     </div>
   )

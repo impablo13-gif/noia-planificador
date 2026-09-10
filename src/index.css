@@ -143,36 +143,71 @@ button {
 }
 
 /* ---------- App shell ---------- */
+/* Barra lateral fija (como Finder/Ajustes del Sistema/Mail en macOS) en vez
+   de una cabecera + fila de pestañas horizontal — con 14 secciones, una
+   lista vertical se lee mucho mejor que una fila que hay que desplazar, y
+   es justo el patrón de navegación más reconocible de una app de Mac. Por
+   debajo de 880px de ancho (móvil / ventana estrecha) se pliega de vuelta a
+   una barra horizontal arriba, para no robarle media pantalla a un móvil. */
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
 
-.app-header {
-  /* Degradado semitransparente + desenfoque del contenido que hay detrás al
-     hacer scroll: el efecto "vibrancy" de una barra de herramientas de
-     macOS, en vez de un color plano pegado encima de la página. */
-  background: linear-gradient(135deg, rgba(138, 20, 26, 0.94) 0%, rgba(165, 25, 32, 0.92) 55%, rgba(22, 61, 107, 0.92) 130%);
+.app-sidebar {
+  width: 258px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 18px 14px;
+  /* Mismo degradado semitransparente + desenfoque "vibrancy" que llevaba la
+     cabecera -- el contenido se intuye difuminado detrás al hacer scroll. */
+  background: linear-gradient(165deg, rgba(138, 20, 26, 0.94) 0%, rgba(165, 25, 32, 0.92) 55%, rgba(22, 61, 107, 0.92) 130%);
   backdrop-filter: saturate(180%) blur(var(--glass-blur));
   -webkit-backdrop-filter: saturate(180%) blur(var(--glass-blur));
   color: var(--white);
-  padding: 16px 20px 14px;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.09) inset, var(--shadow-md);
+  box-shadow: 1px 0 0 rgba(255, 255, 255, 0.09) inset, var(--shadow-md);
   position: sticky;
   top: 0;
+  height: 100vh;
+  overflow-y: auto;
   z-index: 20;
 }
 
-.app-header__top {
+/* Guiño a los tres puntitos de semáforo de una ventana de macOS -- puramente
+   decorativo (no cierran ni minimizan nada), pero es la seña visual más
+   reconocible de "esto es una app de Mac" que existe. */
+.mac-dots {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  max-width: 1180px;
-  margin: 0 auto;
-  padding-bottom: 14px;
+  gap: 7px;
+  flex-shrink: 0;
 }
 
-.app-header__brand {
+.mac-dots span {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.15);
+}
+
+.mac-dots span:nth-child(1) {
+  background: #ff5f57;
+}
+
+.mac-dots span:nth-child(2) {
+  background: #febc2e;
+}
+
+.mac-dots span:nth-child(3) {
+  background: #28c840;
+}
+
+.app-sidebar__brand {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-shrink: 0;
 }
 
 .app-header__crest {
@@ -206,62 +241,72 @@ button {
   text-transform: uppercase;
 }
 
-/* Control segmentado tipo macOS (Ajustes del Sistema / Control Center): una
-   "pista" translúcida contiene las pestañas, y la activa flota encima como
-   una píldora blanca con sombra propia, en vez de la vieja pestaña de
-   navegador pegada al borde inferior de la cabecera. */
-.tabs {
+/* Lista de navegación vertical -- el mismo lenguaje visual que el antiguo
+   control segmentado (pista translúcida + píldora blanca flotando encima en
+   el activo), solo que apilada en columna en vez de en fila. */
+.sidebar-nav {
   display: flex;
+  flex-direction: column;
   gap: 2px;
-  max-width: 1180px;
-  margin: 0 auto;
-  overflow-x: auto;
-  scrollbar-width: none;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   background: rgba(0, 0, 0, 0.16);
   border: 1px solid rgba(255, 255, 255, 0.08);
   padding: 4px;
   border-radius: 13px;
 }
 
-.tabs::-webkit-scrollbar {
-  display: none;
-}
-
-.tab {
+.sidebar-nav__item {
   appearance: none;
   border: none;
   background: transparent;
   color: rgba(255, 255, 255, 0.75);
   font-family: var(--font-body);
   font-weight: 500;
-  font-size: 14px;
-  padding: 9px 15px;
+  font-size: 13.5px;
+  padding: 9px 12px;
   border-radius: 9px;
   cursor: pointer;
   white-space: nowrap;
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 9px;
+  width: 100%;
+  text-align: left;
   transition: color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 
-.tab:hover {
+.sidebar-nav__item:hover {
   color: var(--white);
   background: rgba(255, 255, 255, 0.1);
 }
 
-.tab.is-active {
+.sidebar-nav__item.is-active {
   background: var(--white);
   color: var(--red-800);
   box-shadow: var(--shadow-sm);
 }
 
-.tab svg {
+.sidebar-nav__item svg {
   flex-shrink: 0;
 }
 
-.app-main {
+.app-sidebar__footer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.app-content {
   flex: 1;
+  min-width: 0;
+}
+
+.app-main {
   max-width: 1180px;
   width: 100%;
   margin: 0 auto;
@@ -280,6 +325,55 @@ button {
 
   .home-grid {
     grid-template-columns: 3fr 2fr;
+  }
+}
+
+/* Ventana estrecha (móvil, o simplemente una ventana no maximizada): la
+   barra lateral se pliega de vuelta a una cabecera horizontal arriba, para
+   no robarle media pantalla de ancho a un móvil -- mismo contenido, solo
+   reordenado en filas en vez de en una columna a la izquierda. */
+@media (max-width: 880px) {
+  .app-shell {
+    flex-direction: column;
+  }
+
+  .app-sidebar {
+    width: 100%;
+    height: auto;
+    max-height: none;
+    overflow-y: visible;
+    position: sticky;
+    flex-direction: column;
+    padding: 14px 16px 12px;
+    gap: 12px;
+  }
+
+  .sidebar-nav {
+    flex-direction: row;
+    flex: none;
+    overflow-x: auto;
+    overflow-y: visible;
+    scrollbar-width: none;
+  }
+
+  .sidebar-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .sidebar-nav__item {
+    width: auto;
+  }
+
+  .app-sidebar__footer {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    border-top: none;
+    padding-top: 0;
+  }
+
+  .app-sidebar__footer .btn-block {
+    width: auto;
   }
 }
 
@@ -349,6 +443,7 @@ button {
   background: var(--red-100);
   color: var(--red-700);
   flex-shrink: 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 1px 3px rgba(20, 18, 20, 0.06);
 }
 
 .page-header .section-title {
@@ -645,8 +740,9 @@ textarea::placeholder {
 }
 
 .badge-red {
-  background: var(--red-800);
+  background: linear-gradient(180deg, var(--red-700), var(--red-800));
   color: var(--red-50);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
 .badge-blue {
@@ -668,18 +764,21 @@ textarea::placeholder {
    que Liga/Amistoso/Copa destaquen mucho más que el resto de la interfaz
    (incluido el celeste suave de los entrenos). */
 .badge-comp-liga {
-  background: var(--red-700);
+  background: linear-gradient(180deg, var(--red-600), var(--red-700));
   color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 
 .badge-comp-amistoso {
-  background: var(--orange-600);
+  background: linear-gradient(180deg, #ea8a3c, var(--orange-600));
   color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 
 .badge-comp-copa {
-  background: var(--gold-600);
+  background: linear-gradient(180deg, #d69b1f, var(--gold-600));
   color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 
 .badge-success {
@@ -704,21 +803,25 @@ textarea::placeholder {
   display: flex;
   gap: 10px;
   align-items: flex-start;
+  border-left: 3px solid transparent;
 }
 
 .banner-warn {
   background: var(--warn-100);
   color: #7a4d13;
+  border-left-color: var(--warn-600);
 }
 
 .banner-danger {
   background: var(--danger-100);
   color: var(--danger-600);
+  border-left-color: var(--danger-600);
 }
 
 .banner-info {
   background: var(--blue-100);
   color: var(--blue-700);
+  border-left-color: var(--blue-500);
 }
 
 .banner svg {
@@ -813,6 +916,7 @@ textarea::placeholder {
   background: var(--gray-100);
   border: 1.5px solid var(--gray-300);
   flex-shrink: 0;
+  box-shadow: var(--shadow-sm);
 }
 
 .avatar-lg {
@@ -1569,6 +1673,9 @@ textarea::placeholder {
   background: color-mix(in srgb, var(--chip-color, var(--red-600)) 14%, white);
   color: var(--chip-color, var(--red-600));
   flex-shrink: 0;
+  /* Filo de luz arriba + un pelín de sombra propia -- el mismo truco de
+     "superficie pulida" de los botones, aplicado al cuadradito de icono. */
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 1px 2px rgba(20, 18, 20, 0.05);
 }
 
 .leaderboard-row {
@@ -1925,7 +2032,7 @@ button.match-row:hover {
 }
 
 @media print {
-  .app-header,
+  .app-sidebar,
   .no-print {
     display: none !important;
   }

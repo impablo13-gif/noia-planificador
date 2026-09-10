@@ -60,60 +60,68 @@ export default function App() {
   }
 
   return (
-    <>
-      <header className="app-header">
-        <div className="app-header__top">
-          <div className="app-header__brand">
-            <ClubCrest />
-            <div>
-              <div className="app-header__title">Segundo Cerebro</div>
-              <div className="app-header__subtitle">Noia Portus Apostoli FS · Juvenil DH · 26-27</div>
-            </div>
-          </div>
-          <div className="row" style={{ gap: 8 }}>
-            <button type="button" className="btn btn-secondary" onClick={() => setShowWhiteboard(true)}>
-              <PenTool size={15} />
-              Pizarra rápida
-            </button>
-            <BackupControls />
+    <div className="app-shell">
+      <aside className="app-sidebar">
+        <div className="mac-dots" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+        </div>
+
+        <div className="app-sidebar__brand">
+          <ClubCrest />
+          <div>
+            <div className="app-header__title">Segundo Cerebro</div>
+            <div className="app-header__subtitle">Noia Portus Apostoli FS · Juvenil DH · 26-27</div>
           </div>
         </div>
-        <nav className="tabs">
+
+        <nav className="sidebar-nav">
           {TABS.map(({ id, label, icon: Icon }) => (
-            <button key={id} className={`tab${tab === id ? ' is-active' : ''}`} onClick={() => setTab(id)}>
-              <Icon size={15} />
+            <button key={id} className={`sidebar-nav__item${tab === id ? ' is-active' : ''}`} onClick={() => setTab(id)}>
+              <Icon size={16} />
               {label}
             </button>
           ))}
         </nav>
-      </header>
 
-      <main className="app-main">
-        {tab === 'calendario' && <CalendarView onGoToRival={goToOpponent} />}
-        {tab === 'plantilla' && <RosterView />}
-        {tab === 'asistencia' && <AsistenciaView />}
-        {tab === 'bienestar' && <BienestarView />}
-        {tab === 'lesiones' && <InjuriesView />}
-        {tab === 'estadisticas' && <EstadisticasView />}
-        {tab === 'analisis' && (
-          <AnalisisView initialProyectoId={focusAnalisisProyectoId} onConsumeInitial={() => setFocusAnalisisProyectoId(null)} />
-        )}
-        {tab === 'rivales' && (
-          <OpponentsView
-            initialOpponentId={focusOpponentId}
-            onConsumeInitial={() => setFocusOpponentId(null)}
-            onGoToAnalisis={goToAnalisis}
-          />
-        )}
-        {tab === 'modelo' && <ModeloJuegoView />}
-        {tab === 'playbook' && <PlaybookView />}
-        {tab === 'tareas' && <TareasView />}
-        {tab === 'mercado' && <MercadoView />}
-        {tab === 'mesociclos' && <MesocicloView />}
-        {tab === 'asistente' && <AssistantView />}
-      </main>
+        <div className="app-sidebar__footer">
+          <button type="button" className="btn btn-secondary btn-block" onClick={() => setShowWhiteboard(true)}>
+            <PenTool size={15} />
+            Pizarra rápida
+          </button>
+          <BackupControls />
+        </div>
+      </aside>
+
+      <div className="app-content">
+        <main className="app-main">
+          {tab === 'calendario' && <CalendarView onGoToRival={goToOpponent} />}
+          {tab === 'plantilla' && <RosterView />}
+          {tab === 'asistencia' && <AsistenciaView />}
+          {tab === 'bienestar' && <BienestarView />}
+          {tab === 'lesiones' && <InjuriesView />}
+          {tab === 'estadisticas' && <EstadisticasView />}
+          {tab === 'analisis' && (
+            <AnalisisView initialProyectoId={focusAnalisisProyectoId} onConsumeInitial={() => setFocusAnalisisProyectoId(null)} />
+          )}
+          {tab === 'rivales' && (
+            <OpponentsView
+              initialOpponentId={focusOpponentId}
+              onConsumeInitial={() => setFocusOpponentId(null)}
+              onGoToAnalisis={goToAnalisis}
+            />
+          )}
+          {tab === 'modelo' && <ModeloJuegoView />}
+          {tab === 'playbook' && <PlaybookView />}
+          {tab === 'tareas' && <TareasView />}
+          {tab === 'mercado' && <MercadoView />}
+          {tab === 'mesociclos' && <MesocicloView />}
+          {tab === 'asistente' && <AssistantView />}
+        </main>
+      </div>
 
       {showWhiteboard && <QuickWhiteboardModal onClose={() => setShowWhiteboard(false)} />}
-    </>
+    </div>
   )
 }
