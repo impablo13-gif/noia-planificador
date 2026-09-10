@@ -74,7 +74,7 @@ export default function TareaModal({ tarea, onClose, onSaved }) {
 
         <div className="field">
           <label className="field__label">Diagrama o foto <span className="field__optional">(opcional)</span></label>
-          <FileDrop fileId={fotoFileId} onChange={setFotoFileId} accept="image/*" label="Subir imagen" />
+          <FileDrop fileId={fotoFileId} onChange={setFotoFileId} accept="image/*,.pdf" label="Subir imagen o PDF" />
         </div>
 
         <div className="field">

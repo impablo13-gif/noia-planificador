@@ -749,6 +749,21 @@ export function updateTarea(id, patch) {
   return next
 }
 
+// Importación masiva del catálogo RFEF (o cualquier lista de tareas) —
+// evita duplicar si una tarea con el mismo nombre ya existe (comparación
+// case-insensitive), para poder pulsar "Importar" más de una vez sin miedo.
+export function addTareasBulk(tareasList) {
+  const existentes = new Set(getTareas().map((t) => t.nombre.trim().toLowerCase()))
+  const nuevas = tareasList.filter((t) => !existentes.has((t.nombre || '').trim().toLowerCase()))
+  const conId = nuevas.map((t) => ({
+    id: uid(), nombre: '', contenido: '', momento: 'Principal', descripcion: '', fotoFileId: null, videoUrl: '', pdfFilename: null, createdAt: Date.now(),
+    ...t,
+  }))
+  const next = [...getTareas(), ...conId]
+  writeJSON(KEYS.tareas, next)
+  return { added: conId.length, skipped: tareasList.length - conId.length }
+}
+
 export function removeTarea(id) {
   const tarea = getTareas().find((t) => t.id === id)
   const next = getTareas().filter((t) => t.id !== id)
