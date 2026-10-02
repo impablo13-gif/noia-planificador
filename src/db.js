@@ -1,6 +1,8 @@
 // Persistencia local: localStorage para datos estructurados, IndexedDB para archivos binarios
 // (fotos, escudos, PDFs de sesiones/informes). No hay servidor: todo vive en este navegador.
 
+import { toISODate } from './dateUtils.js'
+
 const KEYS = {
   seeded: 'noia-plan:seeded',
   trainingRule: 'noia-plan:trainingRule',
@@ -793,12 +795,34 @@ export function removeTarea(id) {
 
 // ---------- Mercado de jugadores (seguimiento de fichajes externos) ----------
 
+// Fases del seguimiento de un jugador externo, al estilo de un pipeline de
+// ojeo real -- "Por ver" (referencia recibida, aún sin verlo en directo) es
+// el punto de partida; "Fichado"/"Descartado" son los dos finales posibles.
+export const MERCADO_ESTADOS = [
+  { id: 'por_ver', label: 'Por ver', color: 'var(--ink-500)', bg: 'var(--gray-100)' },
+  { id: 'en_seguimiento', label: 'En seguimiento', color: 'var(--blue-600)', bg: 'var(--blue-100)' },
+  { id: 'interesa', label: 'Interesa', color: 'var(--success-600)', bg: 'var(--success-100)' },
+  { id: 'contactado', label: 'Contactado', color: 'var(--gold-600)', bg: 'var(--gold-100)' },
+  { id: 'fichado', label: 'Fichado', color: 'var(--red-700)', bg: 'var(--red-100)' },
+  { id: 'descartado', label: 'Descartado', color: 'var(--ink-300)', bg: 'var(--gray-100)' },
+]
+
+export const MERCADO_PRIORIDADES = [
+  { id: 'alta', label: 'Alta', color: 'var(--danger-600)' },
+  { id: 'media', label: 'Media', color: 'var(--warn-600)' },
+  { id: 'baja', label: 'Baja', color: 'var(--ink-300)' },
+]
+
 export function getMercadoJugadores() {
   return readJSON(KEYS.mercadoJugadores, [])
 }
 
 export function addMercadoJugador(jugador) {
-  const next = [...getMercadoJugadores(), { id: uid(), nombre: '', clubActual: '', posicion: PUESTOS[0], edad: '', notas: '', contacto: '', fotoFileId: null, createdAt: Date.now(), ...jugador }]
+  const next = [...getMercadoJugadores(), {
+    id: uid(), nombre: '', clubActual: '', posicion: PUESTOS[0], edad: '', notas: '', contacto: '', fotoFileId: null,
+    estado: 'por_ver', prioridad: 'media', cualidades: {}, scoutingFileIds: [], observaciones: [], createdAt: Date.now(),
+    ...jugador,
+  }]
   writeJSON(KEYS.mercadoJugadores, next)
   return next
 }
@@ -814,6 +838,29 @@ export function removeMercadoJugador(id) {
   const next = getMercadoJugadores().filter((j) => j.id !== id)
   writeJSON(KEYS.mercadoJugadores, next)
   if (jugador?.fotoFileId) deleteFile(jugador.fotoFileId)
+  ;(jugador?.scoutingFileIds || []).forEach((fid) => deleteFile(fid))
+  return next
+}
+
+// Historial de observaciones fechadas (un partido visto, una llamada con su
+// entorno…) en vez de una única nota que se va sobrescribiendo -- así queda
+// rastro de CUÁNDO se vio cada cosa, no solo la última impresión.
+export function addMercadoObservacion(jugadorId, texto) {
+  const next = getMercadoJugadores().map((j) => {
+    if (j.id !== jugadorId) return j
+    const obs = { id: uid(), fecha: toISODate(new Date()), texto }
+    return { ...j, observaciones: [obs, ...(j.observaciones || [])] }
+  })
+  writeJSON(KEYS.mercadoJugadores, next)
+  return next
+}
+
+export function removeMercadoObservacion(jugadorId, obsId) {
+  const next = getMercadoJugadores().map((j) => {
+    if (j.id !== jugadorId) return j
+    return { ...j, observaciones: (j.observaciones || []).filter((o) => o.id !== obsId) }
+  })
+  writeJSON(KEYS.mercadoJugadores, next)
   return next
 }
 
