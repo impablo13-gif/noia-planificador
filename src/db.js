@@ -510,14 +510,33 @@ export function setBienestarAlias(key, playerId) {
 // lesionado que viene y hace trabajo aparte cuenta como presente en la
 // pista (aunque no entrene con el grupo), uno que no viene es una ausencia
 // más — de ahí que sean dos estados distintos, no uno con una nota aparte.
+//
+// `kinds` dice en qué tipo de jornada tiene sentido ese estado — la mayoría
+// vale para entreno y partido por igual, pero "No convocado" (el jugador
+// entrenó toda la semana con normalidad, simplemente no entra en la
+// convocatoria) solo es un concepto de día de partido, y "Juvenil B" (ese
+// día entrena con el otro equipo juvenil del club) solo tiene sentido en un
+// entreno. `estadosParaKind` filtra por esto en el selector; la lista
+// completa (`ASISTENCIA_ESTADOS`) se sigue usando para resolver el color o
+// la etiqueta de un estado ya guardado, sea cual sea su jornada.
 export const ASISTENCIA_ESTADOS = [
-  { id: 'presente', label: 'Presente', color: 'var(--success-600)', bg: 'var(--success-100)' },
-  { id: 'lesion_presente', label: 'Lesión (en pista)', color: 'var(--warn-600)', bg: 'var(--warn-100)' },
-  { id: 'lesion_ausente', label: 'Lesión (ausente)', color: 'var(--danger-600)', bg: 'var(--danger-100)' },
-  { id: 'filial', label: 'Filial', color: 'var(--blue-600)', bg: 'var(--blue-100)' },
-  { id: 'primer_equipo', label: '1º Equipo', color: 'var(--red-700)', bg: 'var(--red-100)' },
-  { id: 'falta', label: 'Falta', color: 'var(--ink-500)', bg: 'var(--gray-100)' },
+  { id: 'presente', label: 'Presente', color: 'var(--success-600)', bg: 'var(--success-100)', kinds: ['entreno', 'partido'] },
+  { id: 'lesion_presente', label: 'Lesión (en pista)', color: 'var(--warn-600)', bg: 'var(--warn-100)', kinds: ['entreno', 'partido'] },
+  { id: 'lesion_ausente', label: 'Lesión (ausente)', color: 'var(--danger-600)', bg: 'var(--danger-100)', kinds: ['entreno', 'partido'] },
+  { id: 'filial', label: 'Filial', color: 'var(--blue-600)', bg: 'var(--blue-100)', kinds: ['entreno', 'partido'] },
+  { id: 'primer_equipo', label: '1º Equipo', color: 'var(--red-700)', bg: 'var(--red-100)', kinds: ['entreno', 'partido'] },
+  { id: 'juvenil_b', label: 'Juvenil B', color: 'var(--gold-600)', bg: 'var(--gold-100)', kinds: ['entreno'] },
+  { id: 'no_convocado', label: 'No convocado', color: 'var(--violet-600)', bg: 'var(--violet-100)', kinds: ['partido'] },
+  { id: 'falta', label: 'Falta', color: 'var(--ink-500)', bg: 'var(--gray-100)', kinds: ['entreno', 'partido'] },
 ]
+
+// Estados que tiene sentido poder ELEGIR para una jornada de este tipo —
+// 'entreno' o 'partido'. Sin `kind` (compatibilidad, o un sitio que no lo
+// sepa) devuelve la lista completa.
+export function estadosParaKind(kind) {
+  if (kind !== 'entreno' && kind !== 'partido') return ASISTENCIA_ESTADOS
+  return ASISTENCIA_ESTADOS.filter((e) => e.kinds.includes(kind))
+}
 
 export function getAsistencia() {
   return readJSON(KEYS.asistencia, {})

@@ -2,11 +2,16 @@ import { useState } from 'react'
 import { Save, CheckCheck } from 'lucide-react'
 import Modal from './Modal.jsx'
 import PlayerAvatar from './PlayerAvatar.jsx'
-import { setAsistenciaForDate, ASISTENCIA_ESTADOS } from '../db.js'
+import { setAsistenciaForDate, ASISTENCIA_ESTADOS, estadosParaKind } from '../db.js'
 import { formatDateLong, parseISODate } from '../dateUtils.js'
 
-export default function AsistenciaModal({ fecha, label, players, initialEstados, onClose, onSaved }) {
+// `kind` ('entreno' | 'partido') determina qué estados se pueden ELEGIR aquí
+// -- "No convocado" solo en partido, "Juvenil B" solo en entreno. Un estado
+// ya guardado se sigue resolviendo contra la lista completa (ASISTENCIA_ESTADOS)
+// para no romper el color/etiqueta de datos antiguos o de otra jornada.
+export default function AsistenciaModal({ fecha, label, kind, players, initialEstados, onClose, onSaved }) {
   const [estados, setEstados] = useState({ ...initialEstados })
+  const opcionesSeleccionables = estadosParaKind(kind)
 
   function setEstado(playerId, estadoId) {
     setEstados((prev) => ({ ...prev, [playerId]: estadoId }))
@@ -78,7 +83,7 @@ export default function AsistenciaModal({ fecha, label, players, initialEstados,
                   <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink-900)' }}>{p.nombre}</span>
                 </span>
                 <div className="chip-group" style={{ gap: 5 }}>
-                  {ASISTENCIA_ESTADOS.map((e) => (
+                  {opcionesSeleccionables.map((e) => (
                     <button
                       key={e.id}
                       type="button"

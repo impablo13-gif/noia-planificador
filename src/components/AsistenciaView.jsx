@@ -100,6 +100,7 @@ export default function AsistenciaView() {
         <AsistenciaModal
           fecha={opening.fecha}
           label={opening.label}
+          kind={opening.kind}
           players={equipoPlayers}
           initialEstados={getAsistenciaForDate(opening.fecha)?.estados || {}}
           onClose={() => setOpening(null)}
