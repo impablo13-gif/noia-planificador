@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { Goal, Handshake, Clock, Flame, HeartPulse, BrainCircuit, Radar } from 'lucide-react'
+import { Goal, Handshake, Clock, Flame, HeartPulse, BrainCircuit, Radar, Hand, AlertTriangle } from 'lucide-react'
 import PlayerAvatar from './PlayerAvatar.jsx'
 import RadarChart from './RadarChart.jsx'
 import SessionRpePanel from './SessionRpePanel.jsx'
 import { getPartidosNpa, getConceptosCatalogo, CUALIDADES_EJES } from '../db.js'
 import { computePlayerStats } from '../statsEngine.js'
-import { teamWellnessSnapshot, playerAverageRpe } from '../bienestarStats.js'
+import { teamWellnessSnapshot, teamBienestarDates, playerAverageRpe } from '../bienestarStats.js'
 import { formatDateShort, parseISODate } from '../dateUtils.js'
 
 const MEDALS = ['🥇', '🥈', '🥉']
@@ -57,7 +57,20 @@ function LeaderboardCard({ title, icon: Icon, iconColor, barColor, players, getV
 
 // Anillo de progreso (SVG) para una métrica sobre un máximo, con el número
 // grande en el centro — más legible de un vistazo que una barra plana.
-function ProgressRing({ value, max, label, size = 88, stroke = 8 }) {
+// `invert` es para el RPE: ahí subir es ir a peor (más fatiga), al revés que
+// el bienestar general, donde subir es ir a mejor.
+function TrendDelta({ delta, invert }) {
+  if (delta == null || Math.abs(delta) < 0.05) return null
+  const up = delta > 0
+  const good = invert ? !up : up
+  return (
+    <div style={{ fontSize: 11, fontWeight: 700, marginTop: 3, color: good ? '#9ef0b8' : '#ffb3b3' }}>
+      {up ? '▲' : '▼'} {up ? '+' : ''}{delta.toFixed(1)} vs. anterior
+    </div>
+  )
+}
+
+function ProgressRing({ value, max, label, delta, invertDelta, size = 88, stroke = 8 }) {
   const pct = value != null ? Math.max(0, Math.min(1, value / max)) : 0
   const r = (size - stroke) / 2
   const c = 2 * Math.PI * r
@@ -93,11 +106,12 @@ function ProgressRing({ value, max, label, size = 88, stroke = 8 }) {
         </text>
       </svg>
       <div style={{ fontSize: 11.5, opacity: 0.9, marginTop: 4 }}>{label}</div>
+      <TrendDelta delta={delta} invert={invertDelta} />
     </div>
   )
 }
 
-function TeamWellnessCard({ snap }) {
+function TeamWellnessCard({ snap, prevSnap }) {
   if (!snap.fecha) {
     return (
       <div className="card">
@@ -133,8 +147,19 @@ function TeamWellnessCard({ snap }) {
         </div>
       </div>
       <div className="row" style={{ gap: 24, justifyContent: 'center' }}>
-        <ProgressRing value={snap.rpeAvg} max={10} label="RPE medio /10" />
-        <ProgressRing value={snap.wellnessAvg} max={5} label="Bienestar general /5" />
+        <ProgressRing
+          value={snap.rpeAvg}
+          max={10}
+          label="RPE medio /10"
+          delta={prevSnap?.rpeAvg != null && snap.rpeAvg != null ? snap.rpeAvg - prevSnap.rpeAvg : null}
+          invertDelta
+        />
+        <ProgressRing
+          value={snap.wellnessAvg}
+          max={5}
+          label="Bienestar general /5"
+          delta={prevSnap?.wellnessAvg != null && snap.wellnessAvg != null ? snap.wellnessAvg - prevSnap.wellnessAvg : null}
+        />
       </div>
     </div>
   )
@@ -168,6 +193,47 @@ function EquipoRadarCard({ players }) {
       <div className="row" style={{ justifyContent: 'center' }}>
         <RadarChart axes={CUALIDADES_EJES} values={medias} color="var(--blue-600)" />
       </div>
+    </div>
+  )
+}
+
+// Amarillas y rojas por jugador -- no asume ningún umbral concreto de
+// sanción por acumulación (varía según competición/federación), solo
+// muestra el recuento para que Pablo lo interprete con la regla que
+// corresponda a cada caso.
+function TarjetasCard({ players, npaFor }) {
+  const ranked = players
+    .map((p) => ({ p, yellow: npaFor(p).yellow || 0, red: npaFor(p).red || 0 }))
+    .filter((r) => r.yellow > 0 || r.red > 0)
+    .sort((a, b) => (b.red - a.red) || (b.yellow - a.yellow))
+    .slice(0, 6)
+
+  return (
+    <div className="card" style={{ padding: 18 }}>
+      <div className="row" style={{ gap: 10, marginBottom: 16 }}>
+        <div className="icon-chip" style={{ '--chip-color': 'var(--warn-600)' }}>
+          <AlertTriangle size={16} />
+        </div>
+        <h4 style={{ fontSize: 14 }}>Tarjetas acumuladas</h4>
+      </div>
+      {ranked.length === 0 ? (
+        <p className="text-muted" style={{ fontSize: 12.5 }}>Sin tarjetas importadas de NPA Stats todavía.</p>
+      ) : (
+        <div className="stack" style={{ gap: 11 }}>
+          {ranked.map(({ p, yellow, red }) => (
+            <div key={p.id} className="row spread">
+              <span className="row" style={{ gap: 8 }}>
+                <PlayerAvatar fileId={p.fotoFileId} size="sm" />
+                <span className="leaderboard-name">{p.nombre}</span>
+              </span>
+              <span className="row" style={{ gap: 6 }}>
+                {yellow > 0 && <span className="badge" style={{ background: 'var(--warn-100)', color: 'var(--warn-600)' }}>🟨 {yellow}</span>}
+                {red > 0 && <span className="badge" style={{ background: 'var(--danger-100)', color: 'var(--danger-600)' }}>🟥 {red}</span>}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -220,10 +286,16 @@ export default function RosterDashboard({ players }) {
   const matches = getPartidosNpa()
   const npaFor = (p) => computePlayerStats(matches, p.nombre).agg
   const wellnessSnap = teamWellnessSnapshot(players)
+  // Tendencia del bienestar: compara con el día real anterior (no solo "el
+  // último día"), para que el "vs. anterior" del hero signifique siempre lo
+  // mismo aunque pasen varios días sin respuestas.
+  const bienestarDates = teamBienestarDates(players)
+  const prevFecha = bienestarDates.length > 1 ? bienestarDates[bienestarDates.length - 2] : null
+  const prevWellnessSnap = prevFecha ? teamWellnessSnapshot(players, prevFecha) : null
 
   return (
     <div className="dashboard-grid">
-      <TeamWellnessCard snap={wellnessSnap} />
+      <TeamWellnessCard snap={wellnessSnap} prevSnap={prevWellnessSnap} />
       <LeaderboardCard
         title="Más goles"
         icon={Goal}
@@ -262,6 +334,16 @@ export default function RosterDashboard({ players }) {
         unit=" RPE"
         emptyText="Aún no hay respuestas de RPE — sincroniza el cuestionario de bienestar."
       />
+      <LeaderboardCard
+        title="Porteros: paradas"
+        icon={Hand}
+        iconColor="var(--blue-600)"
+        barColor="linear-gradient(90deg, var(--blue-700), var(--blue-500))"
+        players={players.filter((p) => p.posicion === 'Portero')}
+        getValue={(p) => npaFor(p).saves}
+        emptyText="Aún no hay paradas importadas de NPA Stats."
+      />
+      <TarjetasCard players={players} npaFor={npaFor} />
       <EquipoRadarCard players={players} />
       <ConceptosEquipoCard players={players} />
       {wellnessSnap.fecha && (

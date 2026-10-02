@@ -129,6 +129,7 @@ export default function StatsDashboard({ matches, players, onChanged }) {
           {(() => {
             const xgTotal = rows.reduce((s, r) => s + r.xgFor, 0)
             const max = Math.max(stats.goles, xgTotal, 1)
+            const delta = stats.goles - xgTotal
             return (
               <div className="stack" style={{ gap: 8 }}>
                 <div className="leaderboard-name-row">
@@ -141,6 +142,10 @@ export default function StatsDashboard({ matches, players, onChanged }) {
                   <span className="leaderboard-value" style={{ color: 'var(--ink-500)' }}>{xgTotal.toFixed(1)}</span>
                 </div>
                 <div className="leaderboard-bar-track"><div className="leaderboard-bar-fill" style={{ width: `${(xgTotal / max) * 100}%`, background: 'var(--gray-300)' }} /></div>
+                {/* Anotar más de lo esperado es sobrerrendimiento (bueno) aquí. */}
+                <div style={{ fontSize: 12, fontWeight: 700, color: delta >= 0 ? 'var(--success-600)' : 'var(--danger-600)' }}>
+                  {delta >= 0 ? '▲' : '▼'} {delta >= 0 ? '+' : ''}{delta.toFixed(1)} sobre lo esperado
+                </div>
               </div>
             )
           })()}
@@ -155,6 +160,7 @@ export default function StatsDashboard({ matches, players, onChanged }) {
           {(() => {
             const xgTotal = rows.reduce((s, r) => s + r.xgAgainst, 0)
             const max = Math.max(stats.encajados, xgTotal, 1)
+            const delta = stats.encajados - xgTotal
             return (
               <div className="stack" style={{ gap: 8 }}>
                 <div className="leaderboard-name-row">
@@ -167,6 +173,10 @@ export default function StatsDashboard({ matches, players, onChanged }) {
                   <span className="leaderboard-value" style={{ color: 'var(--ink-500)' }}>{xgTotal.toFixed(1)}</span>
                 </div>
                 <div className="leaderboard-bar-track"><div className="leaderboard-bar-fill" style={{ width: `${(xgTotal / max) * 100}%`, background: 'var(--gray-300)' }} /></div>
+                {/* Aquí es al revés: encajar menos de lo esperado es lo bueno. */}
+                <div style={{ fontSize: 12, fontWeight: 700, color: delta <= 0 ? 'var(--success-600)' : 'var(--danger-600)' }}>
+                  {delta >= 0 ? '▲' : '▼'} {delta >= 0 ? '+' : ''}{delta.toFixed(1)} sobre lo esperado
+                </div>
               </div>
             )
           })()}
